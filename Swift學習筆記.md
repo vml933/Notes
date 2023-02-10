@@ -299,3 +299,8 @@ echo "searching ${SRCROOT} for ${TAGS}"
 find "${SRCROOT}" \( -name "*.swift" \) -print0 | xargs -0 egrep --with-filename --line-number --only-matching "($TAGS).*\$" | perl -p -e "s/($TAGS)/ warning: \$1/"
 ```
 - **DEBUG小技巧**：如果想知道某個func回傳值，可以在return那行加上Breakpoint，然後RUN，執行該行hang住時，按step
+- 取得月份: "January", "February", "March"...
+```
+Calendar.current.monthSymbols[month - 1]
+```
+- 如果要Loop所有的enum, 必須實作`CaseIterable`, 就可以用SomeEnum.allCases loop所有類型
