@@ -26,3 +26,9 @@ TableColumn("Title") {
 TableColumn("Title", value: \.text)
 ```
 - TableView中的每筆資料會使用UUID來辨別每列的資料, 故資料必須要有UUID
+- List加上選取功能，如果List裡頭有一個以上的ForEach,會依據selection類型對相同類型的ForEach加上選取功能
+```
+List(selection: $selection)
+```
+- MacOS App的icon不會自動切圓角
+- 設定keyboardShortcut時，因為Command Key是預設行為，不用特別指定
