@@ -8,11 +8,14 @@
 
 **@State**
 - State是一個property wrapper類型，可以被SwiftUI讀取與寫入
-- 當變數宣告為State，是指該變數擁有該Data(存在其他儲存空間，由SwiftUI管理)的Reference, 而非直接存取Data,(使用@State的地方為View:不可變struct，如果要指定值，complier會報錯，狀態刷新:重建View時，為了保持狀態同步，必須額外儲存空間)，當state的值改變時，view會重新complier body(SwiftUI re-render), 被用來當single source of truth 
+- 當變數宣告為State，是指該View擁有該變數Data的Reference(存在其他儲存空間，由SwiftUI管理), 而非直接存取Data,(因為宣告@State的地方為Struct View，如果要指定值，complier會報錯，狀態刷新:重建View時，為了保持狀態同步，必須額外儲存空間)，當state的值改變時，view會重新complier body(SwiftUI re-render), @sState被用來當single source of truth 
 - 擁有@Published特性
-- 當宣告@State var myVar時， 編輯器自動產生 var myVar = State<Int>(initialValue: 0), 可透過(有底線) _myVar.wrappedValue 取得該值; 若要將該值放到Binding<T>的變數時，可用myVar.projectedValue
-- @State var myIndex 等於 _myIndex.wrappedValue
+- 當宣告@State var myVar時， 編輯器背後自動產生 var myVar = State<Int>(initialValue: 0), 可透過(有底線) _myVar.wrappedValue 取得該值; 若要將該值放到Binding<T>的變數時，可用myVar.projectedValue。但如果是手動宣告var myVar = State<Int>(initialValue: 0)，變數值前面不用加底線
+- `@State var myIndex` 等於 `_myIndex.wrappedValue`
+- `$myIndex` 等於 `_myIndex.projectedValue` : `Binding<T>`
 - State是Value Type，若當參數傳送，是copy by value
+- 若將一個struct(內含許多property)，宣告成State，可正常運作，但沒效率，因為其中一個property改變，就會將整個struct的實體換掉，所有相關聯的UI都會Trigger Refresh，影響效能，請小心使用struct配合State。
+- 若將一個class宣告成State, 則不會有作用. 
 
 **@ObservedObject**
 - 變數宣告為ObservedObject時，代表變數被移除View的變數空間，並用binding的方式相關聯
@@ -20,7 +23,7 @@
 - 擁有@Published特性
 - 當你使用class-instance當作model時，除非重新指定instance,不然修改裡面的變數並不會trigger UI-Refresh
 - OservedObject配合@Published，當class實作ObservableObject時，裡頭的@Published都會自動實作requires:objectWillChange，並將Class資料從View移至外部，不為View所有，@ObservedObject裡頭的@Published屬性，在view中的運作有如State
-- 使用@Published的屬性建議使用value type(因為已經共享的關係?)
+- 因為Publisher運作有如State，若使用@Published的屬性必須value type: 基本型態或struct
 - @StateObject vs @ObservedObject 差別:
 
 相同點: 兩者都必須實作ObservableObject, 並配合@Published
@@ -108,4 +111,6 @@ var body: some View {
 - AsyncImage不可以直接加modifer(例如.resizable()), 必須用closure後帶的Image才可以帶modifier
 - @FocusState wrapper配合modifier: .focused，監聽View是否為Focus狀態
 - modifer: .alert()裡面放按鈕，即使按鈕為空action, 按下後依然會關閉alert
+- [SwiftUI易搞混類型比較](bit.ly/35Xt7eU)
+- 當Class實作ObservableObject時，該Class擁有`Publisher`protocol功能，自動實作objectWillChange方法
 
