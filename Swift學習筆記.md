@@ -54,7 +54,7 @@ let decoder = JSONDecoder()
 decoder.keyDecodingStrategy = .convertFromSnakeCase
 ```
 - 可用extension的方式為protocol實現基本實作, 類似c#定義interface後，Abstract Class定義基本方法的概念
-- Task 產生一個非同步的容器給async使用, 非必要
+- Task實體產生一個非同步的closure給async使用, 非必要, Task實體可用來與之非同步工作互動，如取消。 當你不再參照Task實體時，裡頭的非同步工作依然執行中
 - `Result<Data, Error>` 代表一個結果，成功可帶值，失敗可帶error，常用來回傳api, 跟Combine裡面的Publisher<Int, Never>類似
 ```
 func perform(_ request: URLRequest, completionHandler: @escaping (Result<Data, Error>) -> ())...

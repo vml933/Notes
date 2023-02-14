@@ -104,6 +104,8 @@ var body: some View {
 }
 ```
 - 將SwiftUI包給UIKit的專案用: UIHostingController
-- 將UIKit(UIView & UIViewController)包給SwiftUI專案用: UIViewRepresentable, UIViewControllerRepresentable
-
+- 將UIKit(UIView & UIViewController)包給SwiftUI專案用: UIViewRepresentable, UIViewControllerRepresentable, 加上Coordinator可以讓AppKit或UIKit回饋事件給SwiftUI
+- AsyncImage不可以直接加modifer(例如.resizable()), 必須用closure後帶的Image才可以帶modifier
+- @FocusState wrapper配合modifier: .focused，監聽View是否為Focus狀態
+- modifer: .alert()裡面放按鈕，即使按鈕為空action, 按下後依然會關閉alert
 
