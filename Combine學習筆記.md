@@ -1,10 +1,38 @@
 ## Combine學習筆記
-
-- `assign(to:on:)`可用來binding UIKIT(但支援並不全面)，因為可以用來bind keypath, 只能用來處理Failure = Never的情形
-- `assign(to:)`可用來binding @Published，使該value重新轉送出去。如果是自身的publish變數記得前綴有兩個符號 &$param, 如果是別人的，記得 &object.$value
-- `assign(to:on:)`會回傳一個Anycancel, assign(to:)不會，因為`assign(to:)` binding的@Published值會自己處理Life Cycle; There is one tricky part about `assign(to:on:)` — It’ll strongly capture the object provided to the on argument.
-- 下方案例會造成StrongReference, 改成 .assign(to) 就可解決
+- Combine基本元素Publisher Protocol, 與RxSwift基本元素Event<Element>不同
 ```
+//Combine
+protocol Publisher<Output, Failure>
+
+//RxSwift
+public enum Event<Element> {
+    case next(Element)
+    case error(Swift.Error)
+    case completed
+}
+```
+- Publishers's `completion`事件可能為`successful`或`failure`
+- `assign(to:on:)`可用來binding UIKIT(但支援並不全面)，因為可以用來bind keypath, 只能用來處理Failure = Never的情形
+- `assign(to:)`可用來binding @Published。
+```
+class SomeObject {
+   @Published var value = 0
+}
+    
+let object = SomeObject()
+//使用前綴字元:$ 取得@Publisher屬性底下的publisher
+object.$value.sink {
+    print($0)
+}
+    
+(0..<10).publisher
+//前綴字元&表示inout reference
+   .assign(to: &object.$value)
+```
+- `assign(to:on:)`會回傳一個Anycancel, assign(to:)不會，因為`assign(to:)` binding的@Published變數, 當該變數deinitialized時，subscription會自己取消， There is one tricky part about `assign(to:on:)` — It’ll strongly capture the object provided to the on argument.
+- 下方案例會造成StrongReference, 改成 assign(to: &$word) 就可解決
+```
+//Strong Reference
 class MyObject {
   @Published var word: String = ""
   var subscriptions = Set<AnyCancellable>()
