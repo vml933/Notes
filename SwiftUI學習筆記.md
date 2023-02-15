@@ -30,10 +30,10 @@
 
 差異點:
 @ObservedObject:會隨著View的更新多次建立, 主要發生在View與Model(external)之間的綁定(View向Model訂閱，Model向View通知)
-@StateObject:只會被建立一次，是@State(value for ObservableObject)的兄弟版(Reference for ObservableObject)
+@StateObject:Reference for ObservableObject，只會被建立一次，是@State的兄弟版
 
-- @AppStorage 直接對UserDefaults讀寫
-- 使用@EnvironmentObject，將某個Object拉出環境?並儲存為一個屬性, 必須是 Class for ObservableObject, 全部的childView都有效
+- @AppStorage 直接對UserDefaults讀寫並帶有觸發更新UI功能
+- 使用@EnvironmentObject，將某個Object拉出環境?並儲存為一個屬性, 必須是 Class for ObservableObject, 全部的childView都有效, 並必須已經為initialized完成.使用@EnvironmentObject不需要再重新初始化
 ```
 case let:
     guard
@@ -65,7 +65,33 @@ ForEach需要用List或VStack包起來
 - @Published someProperty可以用$存取, 即使該class沒有繼承ObservableObject
 - 使用 assign(to: \.someProperty, on: self)可以將發出的元素綁定在自身的@Published值(Republishing), 會回傳一個strong reference
 - .onAppear {}
-- 如果不想使用ObservableObject/ObservedObject，只想簡單用publisher, 可用.onReceive(_:perform:) 當該View收到指定Publisher發送訊息時，就執行特定action
+- 如果不想使用ObservableObject/ObservedObject，只想簡單用`publisher`, 可用.onReceive(_:perform:) 當該View收到指定`Publisher`發送訊息時，就執行特定action
+```
+struct ReceiverView: View {
+    let timer = Timer.publish(every: 1.0, on: .main, in: .default).autoconnect()
+
+    @State var time = ""
+
+    var body: some View {
+        Text(time)
+            .onReceive(timer) { t in time = String(describing: t) }
+    }
+}
+```
+- 同上方狀況，若想監聽@State值變化觸發action，可用onChanged(_:)
+```
+struct PlayerView: View {
+    var episode: Episode
+    @State private var playState: PlayState = .paused
+
+    var body: some View {
+	Text(episode.title)
+	        .onChange(of: playState) { [playState] newState in
+    	        model.playStateDidChange(from: playState, to: newState)
+        	}
+    }
+}
+```
 - 當停止Task.Handle，並不會停止過程，只是標註 "Task已取消"，必須自己實作取消過程
 - iOS15 SwiftUI 新增一個.task modifier, 當這個viewerOnAppear時，執行非同步工作; 當View消失時，會cancel Task
 - ContentView可設定Preview設備
@@ -90,10 +116,36 @@ struct ContentView_Previews: PreviewProvider {
 - .ZStack & .Overlay差別: ZStack為動態Container, frame的尺寸完全基於內部內容，會由最大的子框架定義；而overlay只會考慮第一個視圖定義的大小
 - .task 當SwiftUI出現後，執行非同步工作的modifier，適合用在非使用combine, 非使用MVVM的SwiftUI簡易情境
 - Environment的值通知用來讀取，不寫入值，宣告後，它就是該view的State屬性
-- .EnvironmentObject(_:)用來創造自訂的Environment物件，將某個object注入至環境, 比較像是在SwiftUI層(View)的singleton模式, 注入的物件可以被該View與子View存取，但無法被母層存取。特別注意，注入類別實體只能存在一個，若其他地方再注入相同類別，便會取代上一個類別實體.
+- .EnvironmentObject(_:)用來創造自訂的Environment物件，將某個object注入至環境, 比較像是在SwiftUI層(View)的singleton模式, 注入的物件可以被該View與子View存取，但無法被母層存取。特別注意，注入類別實體同時間只能存在一個，若其他地方再注入相同類別，便會取代上一個類別實體.
 - Ctrl + Option + Click 點擊canvas畫面，出現元件設定選項
 - 假若Object是一個 @EnvironmentObject, 裡面有一個Compute Property: param, 若想要把這個param放到Binding<T>裡，可以用Binding的靜態方法.constant包起來，它可以由一個無法修改值初始化，ex:.constant(challengesViewModel.numberOfAnswered)
-- 一般來說，藉由view-initializer傳遞Observable物件是不明智的，因為可能會有re-render就重建observable物件實體的問題。較好的做法是母層view建立observable，透過變數傳給子層較佳. SwiftUI2新增的 @StateObject可解決此問題, @StateObject的生命週期不會follow該view，詳情看第6點
+- 一般來說，在View中宣告ObservabedObject變數或藉由view-initializer傳遞Observable物件是有風險的，因為可能會有re-render就重建observable物件實體的問題。較好的做法是母層view建立observable，透過變數傳給子層較佳. SwiftUI2新增的 @StateObject可解決此問題, @StateObject的生命週期不會follow該view，詳情看第6點
+```
+//有風險: SomeView重render時就會重建一個UserManager()
+struct SomeOtherView: View {
+  var body: some View {
+    SomeView(userManager: UserManager())
+  }
+}
+```
+```
+//較安全
+struct SomeOtherView: View {
+  let userManager = UserManager()
+
+  var body: some View {
+    SomeView(userManager: userManager)
+  }
+}
+```
+```
+//新做法: @StateObject變數不會隨著View重新render而重建，類似該View的靜態屬性
+struct SomeView: View {
+  @StateObject var userManager = UserManager()
+  ...
+}
+```
+
 - [environment列表](https://developer.apple.com/documentation/swiftui/environmentvalues), 可自訂environment屬性
 - @ViewBuilder view的body可能會產出多個view時使用，如
 ```
