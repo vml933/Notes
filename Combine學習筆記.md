@@ -46,7 +46,7 @@ class MyObject {
 ```
 - 目前未知使用subscriber或custom subscriber的時機為何，已知可以.subscribe(subject)
 - 已知手動publisher.subscribe(subscriber)，沒有回傳值；跟publisher.sink的回傳值為AnyCancellable不同
-- Futrue是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
+- Future是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
 - (備註)future is greedy, Future當它創建完後馬上執行，不用像publisher(lazy)需要subscriber, 如果有兩個以上的subscribe，它只會執行一次，並且share結果
 - Subscriber的.max(2)，是指加上可接受兩個元素
 - publisher, futures, subjects 可配合async/await!

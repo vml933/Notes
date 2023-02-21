@@ -165,4 +165,23 @@ var body: some View {
 - modifer: .alert()裡面放按鈕，即使按鈕為空action, 按下後依然會關閉alert
 - [SwiftUI易搞混類型比較](bit.ly/35Xt7eU)
 - 當Class實作ObservableObject時，該Class擁有`Publisher`protocol功能，自動實作objectWillChange方法
+- SwiftUI配合UIApplication.shared.windows.first，可在ViewModel呼叫傳統的UIAlertController混合
+```
+guard
+let window = UIApplication.shared.windows.first,
+...
+window.rootViewController?.present(alertController, animated: true)
+```
+- SwiftUI的View常透過Init()的方式new一個@ObservedObject，或是透過Init(:)將外面的Observable帶進來
+- 在ObservableObject裡宣告的屬性(沒有@Published之類的Wrapper)，可以在前面加上$變成Binding，傳給View作綁定
+```
+class JobConnectionManager: ObservableObject {
+	var isReceivingJobs: Bool = false
+}
 
+var headerView: some View {
+   Toggle("Receive Jobs", isOn: $jobConnectionManager.isReceivingJobs)
+}
+```
+- SwiftUI有一個EmptyView()方便開發用
+- SwiftUI有一個View: Label，可以加上圖示

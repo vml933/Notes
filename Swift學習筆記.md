@@ -304,3 +304,31 @@ find "${SRCROOT}" \( -name "*.swift" \) -print0 | xargs -0 egrep --with-filename
 Calendar.current.monthSymbols[month - 1]
 ```
 - 如果要Loop所有的enum, 必須實作`CaseIterable`, 就可以用SomeEnum.allCases loop所有類型
+- 如果自訂的Class想要使用官方的Delegate，必須要繼承`NSObject`
+- 不錯的Formatter
+```
+extension NumberFormatter {
+  static var currency: NumberFormatter = {
+    let numberFormatter = NumberFormatter()
+    numberFormatter.numberStyle = .currency
+    return numberFormatter
+  }()
+}
+
+extension DateFormatter {
+  static var dueDateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter
+  }()
+
+  static var timestampFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .none
+    formatter.timeStyle = .short
+    return formatter
+  }()
+}
+```
+- 如果要使用FileManager判斷檔案是否存在或移除檔案，URL不可使用File URL(開頭為file://)，否則會無效
