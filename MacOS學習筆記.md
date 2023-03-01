@@ -35,3 +35,4 @@ List(selection: $selection)
 - NSWorkspace可以存取內建的app或服務：打開Finder於特定資料夾、打開預設瀏覽器...等
 - 呼叫Process試圖讀取/寫入檔案，在Playground下沒有讀取/寫入限制，但若在App裡面讀取/寫入非container的位置就會遇到Mac Sandbox的限制
 - 呼叫Process無法下達萬用字元參數，如 sips --resampleHeight 600 *.png --out resized_images
+- 要在SwiftUI下取得AppDelegate要使用NSApplicationDelegateAdaptor

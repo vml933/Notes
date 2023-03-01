@@ -185,3 +185,7 @@ var headerView: some View {
 ```
 - SwiftUI有一個EmptyView()方便開發用
 - SwiftUI有一個View: Label，可以加上圖示
+- 要在SwiftUI底下取得UIWindow, 要用`@Environment`
+```
+@Environment(\.window) var window: UIWindow?
+```
