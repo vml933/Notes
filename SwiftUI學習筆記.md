@@ -163,7 +163,7 @@ var body: some View {
 - AsyncImage不可以直接加modifer(例如.resizable()), 必須用closure後帶的Image才可以帶modifier
 - @FocusState wrapper配合modifier: .focused，監聽View是否為Focus狀態
 - modifer: .alert()裡面放按鈕，即使按鈕為空action, 按下後依然會關閉alert
-- [SwiftUI易搞混類型比較](bit.ly/35Xt7eU)
+- [SwiftUI易搞混類型比較](https://jaredsinclair.com/2020/05/07/swiftui-cheat-sheet.html)
 - 當Class實作ObservableObject時，該Class擁有`Publisher`protocol功能，自動實作objectWillChange方法
 - SwiftUI配合UIApplication.shared.windows.first，可在ViewModel呼叫傳統的UIAlertController混合
 ```
@@ -203,7 +203,7 @@ var headerView: some View {
 Remember, you learned that every use of await is a suspension point, and your code might resume on a different thread. The first piece of your code runs on the main thread because the task initially runs on the main actor. But after the first await, your code could be running on any thread.
 You need to explicitly route any UI-driving code back to the main actor.
 ```
-- 使用MainActor.run同等於DispatchQueue.main, 但如果用太多、會有太多的closure，不好閱讀；建議使用@MainActor在func上
+- 使用MainActor.run同等於DispatchQueue.main, 但如果用太多、會有太多的closure，不好閱讀；建議使用@MainActor在func上, 但該func就必須用await呼叫
 ```
 await MainActor.run {
   ... your UI code ...

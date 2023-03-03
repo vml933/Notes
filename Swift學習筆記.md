@@ -331,6 +331,20 @@ extension DateFormatter {
     return formatter
   }()
 }
+
+let sizeFormatter: ByteCountFormatter = {
+  let formatter = ByteCountFormatter()
+  formatter.allowedUnits = [.useMB]
+  formatter.isAdaptive = true
+  return formatter
+}()
+
+let dateFormatter: DateFormatter = {
+  let formatter = DateFormatter()
+  formatter.dateStyle = .short
+  formatter.timeStyle = .short
+  return formatter
+}()
 ```
 - 如果要使用FileManager判斷檔案是否存在或移除檔案，URL不可使用File URL(開頭為file://)，否則會無效
 - URLSession的timeout預設為60秒，若要修改時間可用:
@@ -346,6 +360,13 @@ extension DateFormatter {
 ```
 /// Easily throw generic errors with a text description.
 extension String: Error { }
+或
+/// Easily throw generic errors with a text description.
+extension String: LocalizedError {
+  public var errorDescription: String? {
+    return self
+  }
+}
 
 do{
 	throw "This is sample error"
