@@ -189,3 +189,23 @@ var headerView: some View {
 ```
 @Environment(\.window) var window: UIWindow?
 ```
+- SwiftUI perform裡頭run的是同步, 若要加非同步 async/await，要用Task包起來，或用.task modifier取代perform, .task也是view出現時就會觸發, task會處理view若被關掉時，取消所有的非同步Request
+- 因為ViewModel多用來觸發UI更新，所以可以在Model的class前面加上@MainActor使之回到主線程
+```
+@MainActor class ViewModel: ObservableObject {
+...
+}
+```
+- Property或func前面也可以加`@MainActor`
+- Task是一種top-level asynchronous task，表示可以從同步工作創建任一非同步工作，
+- 用Task把非同步包起來，無法完全確保request回來時是在主線程，只能確保出發時是在主線程
+```
+Remember, you learned that every use of await is a suspension point, and your code might resume on a different thread. The first piece of your code runs on the main thread because the task initially runs on the main actor. But after the first await, your code could be running on any thread.
+You need to explicitly route any UI-driving code back to the main actor.
+```
+- 使用MainActor.run同等於DispatchQueue.main, 但如果用太多、會有太多的closure，不好閱讀；建議使用@MainActor在func上
+```
+await MainActor.run {
+  ... your UI code ...
+}
+```

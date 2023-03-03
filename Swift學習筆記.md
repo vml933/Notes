@@ -22,6 +22,7 @@ while let animal = animalIterator.next() {
 	print(animal)
 }
 ```
+- async / await最大的好處，再也不用譫心 weak或strongly capture self
 - async / await Async的相關class大部分都可以 throws error，所以使用大部分都用try catch
 ```
   func fetchSongs(for artist: String) async throws -> [MusicItem] {
@@ -332,3 +333,47 @@ extension DateFormatter {
 }
 ```
 - 如果要使用FileManager判斷檔案是否存在或移除檔案，URL不可使用File URL(開頭為file://)，否則會無效
+- URLSession的timeout預設為60秒，若要修改時間可用:
+```
+  /// A URL session that lets requests run indefinitely so we can receive live updates from server.
+  private lazy var liveURLSession: URLSession = {
+    var configuration = URLSessionConfiguration.default
+    configuration.timeoutIntervalForRequest = .infinity
+    return URLSession(configuration: configuration)
+  }()
+```
+- 如果要簡易快速的丢出錯誤，不用自訂enum Error，可以為String加上Extension
+```
+/// Easily throw generic errors with a text description.
+extension String: Error { }
+
+do{
+	throw "This is sample error"
+}catch{
+}
+
+```
+- Compute Property也可以用`async/await`
+```
+var myProperty: String{
+ get async{ ...}
+}
+
+print(await myProperty)
+```
+- 參數若為closure也可以用`async`
+```
+func myFunction(worker: (Int) async -> Int) -> Int {
+...
+}
+
+myFunction{
+ return await computeNumbers($0)
+}
+```
+- 可將tuple的值直接抓出來用
+```
+let (filesResult, statusResult) = try await (files, status)
+self.files = filesResult
+self.status = statusResult
+```
