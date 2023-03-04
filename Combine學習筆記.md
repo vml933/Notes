@@ -46,21 +46,69 @@ class MyObject {
 ```
 - 目前未知使用subscriber或custom subscriber的時機為何，已知可以.subscribe(subject)
 - 已知手動publisher.subscribe(subscriber)，沒有回傳值；跟publisher.sink的回傳值為AnyCancellable不同
-- Future是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
+- `Future`是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
 - (備註)future is greedy, Future當它創建完後馬上執行，不用像publisher(lazy)需要subscriber, 如果有兩個以上的subscribe，它只會執行一次，並且share結果
-- Subscriber的.max(2)，是指加上可接受兩個元素
-- publisher, futures, subjects 可配合async/await!
-- map可直接map keypath直接使用，最多三個，例如輸入coordinate, 使用.map(\.x, \.y)接; 但tryMap沒有keypath可接!
-- prepend除了可以接元素，也可以接publisher
-- switchToLatest主要使用在發送publisher的publisher, 主要用的情境為，使用者點擊後打API, API尚未回應，使用者又點擊了，即可取消上一次完成的request, 開始新的request,類似RxSwift的flatmapLatest
-- 點擊的訊號用 let taps = PassthroughSubject<Void, Never>()
-- merge後裡面，所有的publish必須finished，merge才會complete, combineLatest同樣
-- Timer.publish 為 connectable屬性，故後面要接autoconnect()才會啟動
-- collect可以填數字外，也可以填 .byTime 或 .byTimeOrCount
-- debounce(防抖)是該元素發出後，超過t秒內，未有新元素發出，就送出，使用場景: 搜尋輸入框的推薦關鍵字功能
-- throttle(節流)第一次觸發後，在t秒內的所有觸發都不算，適合每隔一段時間才能被執行一次
-- debug時除了用print, handleEvents也是好方法，專業一點就用breakpointOnError()
-- 大部分publisher都是struct，但如果使用share(), 會回傳Publishers.Share，是class(PassthroughSubject & CurrentValueSubject, Future也是class)，就可以存取ref共享值；第一個訂閱者會觸發啟動，後續的訂閱者只是connect進來；若太晚訂閱，但不會收到上層已發射的值，頂多只會收到completion.除非使用RxSwift的ShareReplay()
+- Subscriber的`.max(2)`，是指加上可接受兩個元素
+- `publisher`, `subject`, `future`, 可配合`async/await`，監聽`values`(publisher, subject), `value(future)`或屬性
+```
+func generateAsyncRandomNumberFromFuture() -> Future <Int, Never> {
+    return Future() { promise in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            let number = Int.random(in: 1...10)
+            promise(Result.success(number))
+        }
+    }
+}
+
+//use await
+let number = await generateAsyncRandomNumberFromFuture().value
+
+```
+
+```
+let subject = PassthroughSubject<Int, Never>()
+
+Task{
+//values returns an asynchronous sequence
+    for await element in subject.values{
+        print("element:\(element)")
+    }
+    print("complete")
+}
+
+subject.send(1)
+subject.send(2)
+subject.send(3)
+subject.send(completion: .finished)
+
+```
+- async-await有一個語法類似Combine的Future,  `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
+```
+func generateAsyncRandomNumberFromContinuation() async -> Int {
+    return await withCheckedContinuation { continuation in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            let number = Int.random(in: 1...10)
+            continuation.resume(returning: number)
+        }
+    }
+}
+
+let asyncRandom = await generateAsyncRandomNumberFromContinuation()
+```
+- `map`可直接map keypath直接使用，最多三個，例如輸入coordinate, 使用.map(\.x, \.y)接; 但`tryMap`沒有keypath可接!
+- `prepend`除了可以接元素，也可以接publisher
+- `switchToLatest`主要使用在發送publisher的publisher, 主要用的情境為，使用者點擊後打API, API尚未回應，使用者又點擊了，即可取消上一次完成的request, 開始新的request,類似RxSwift的flatmapLatest
+- 點擊的訊號 
+```
+let taps = PassthroughSubject<Void, Never>()
+```
+- `merge`裡面，所有的publish必須finished，merge才會`complete`, `combineLatest`同樣
+- `Timer.publish`為`connectable`屬性，故後面要接`autoconnect()`才會啟動
+- `collect`可以填數字外，也可以填 `.byTime` 或 `.byTimeOrCount`
+- `debounce`(防抖)是該元素發出後，超過t秒內，未有新元素發出，就送出，使用場景: 搜尋輸入框的推薦關鍵字功能
+- `throttle`(節流)第一次觸發後，在t秒內的所有觸發都不算，適合每隔一段時間才能被執行一次
+- debug時除了用print,`handleEvents`也是好方法，專業一點就用`breakpointOnError()`
+- 大部分`publisher`都是`struct`，但如果使用`share()`, 會回傳`Publishers.Share`；反之`PassthroughSubject`, `CurrentValueSubject`, `Future`為`Class`，就可以存取ref共享值；第一個訂閱者會觸發啟動，後續的訂閱者只是connect進來；若太晚訂閱，但不會收到上層已發射的值，頂多只會收到completion.除非使用RxSwift的ShareReplay(), 或搭配轉換成`makeConnectable()`
 按照doc顯示，share()是PassthroughSubject結合multicast，autoconnect()的結合體. 思考使用CurrentValueSubject搭配autoconnect&multicast，是否可達到ShareReplay的目的。
 - 如果publisher的Failure為Never的話, Sink可以有只處理元素.sink(receiveValue:而不用管complete的方法，不然都一定要處理complete
 - assertNoFailure 可以開發用
@@ -95,7 +143,7 @@ class MyObject {
     }
 }
 ```
-- Combine如果要若扔出error, 可用Fail<Output, Failure>,例如: Fail<Joke, Error>(error: .jokeDoesntExist(id: id)).eraseToAnyPublisher()
+- Combine如果要若扔出error, 可用Fail<Output, Failure>,例如: Fail<Joke, Error>(error: .jokeDoesntExist(id: id))
 - retry()是嘗試重新resubscribe, 重建subscription
 - 有些運算元只可用在不會失敗的publisher, 如 sink(receiveValue:), setFailureType, assign(to:on:)
 - API實務中，儘可能將外部可能發生的錯誤全部統一為單一自訂錯誤, 一是使用方便，二為隱藏內部的實作方式
