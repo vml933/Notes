@@ -53,8 +53,46 @@ let subscription = Timer
   .subscribe(sourcePublisher)
 ```
 - 已知手動publisher.subscribe(subscriber)，沒有回傳值；跟publisher.sink的回傳值為AnyCancellable不同
-- `Future`是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
-- (備註)future is greedy, Future當它創建完後馬上執行，不用像publisher(lazy)需要subscriber, 如果有兩個以上的subscribe，它只會執行一次，並且share結果
+- `Future`是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行，不須等人訂閱
+```
+func createFuture() -> Future<Int, Never> {
+  return Future { promise in
+    print("Closure executed")
+    promise(.success(42))
+  }
+}
+
+let future = createFuture()
+// prints "Closure executed
+```
+搭配`Deferred`可以達成等到有人訂閱才執行；Deferred是struct, Future是class，會造成有人訂閱後，就產生新的Future
+```
+func createFuture() -> AnyPublisher<Int, Never> {
+  return Deferred {
+    Future { promise in
+      print("Closure executed")
+      promise(.success(42))
+    }
+  }.eraseToAnyPublisher()
+}
+
+let future = createFuture()  // nothing happens yet
+
+let sub1 = future.sink(receiveValue: { value in 
+  print("sub1: \(value)")
+}) // the Future executes because it has a subscriber
+
+let sub2 = future.sink(receiveValue: { value in 
+  print("sub2: \(value)")
+}) // the Future executes again because it received another subscriber
+```
+- Future如果有兩個以上的subscribe，它只會執行一次，並且share結果，跟RxSwift的Single很像，但有下方幾點不同. 
+```
+A Future will begin executing immediately when you create it.
+A Future will only run its supplied closure once.
+Subscribing to the same Future multiple times will yield in the same result being returned.
+A Future in Combine serves a similar purpose as RxSwift's Single but they behave differently.
+```
 - Subscriber的`.max(2)`，是指加上可接受兩個元素
 - `publisher`, `subject`, `future`, 可配合`async/await`，監聽`values`(publisher, subject), `value(future)`或屬性
 ```
@@ -114,14 +152,42 @@ let taps = PassthroughSubject<Void, Never>()
 - `collect`可以填數字外，也可以填 `.byTime` 或 `.byTimeOrCount`
 - `debounce`(防抖)是該元素發出後，超過t秒內，未有新元素發出，就送出，使用場景: 搜尋輸入框的推薦關鍵字功能
 - `throttle`(節流)第一次觸發後，在t秒內的所有觸發都不算，適合每隔一段時間才能被執行一次
-- debug時除了用print,`handleEvents`也是好方法，專業一點就用`breakpointOnError()`
+- debug時除了用print,`handleEvents`也是好方法，專業一點就用`breakpointOnError()`，會直接觸發XCode的中斷處理，也要條件中斷點的`breakpoint(receiveOutput:)`可用
 - 大部分`publisher`都是`struct`，但如果使用`share()`, 會回傳`Publishers.Share`；反之`PassthroughSubject`, `CurrentValueSubject`, `Future`為`Class`，就可以存取ref共享值；第一個訂閱者會觸發啟動，後續的訂閱者只是connect進來；若太晚訂閱，但不會收到上層已發射的值，頂多只會收到completion.除非使用RxSwift的ShareReplay(), 或搭配轉換成`makeConnectable()`
 按照doc顯示，share()是PassthroughSubject結合multicast，autoconnect()的結合體. 思考使用CurrentValueSubject搭配autoconnect&multicast，是否可達到ShareReplay的目的。
 - 如果publisher的Failure為Never的話, Sink可以有只處理元素.sink(receiveValue:而不用管complete的方法，不然都一定要處理complete
 - assertNoFailure 可以開發用
 - map會攜帶明確error type,在sink裡面可以清楚的處理completion的failure type, 但tryMap會清掉error type, 變成單純的error,只好搭配mapError用 error as? SomeErrow 處理，或 switch case: case is SomeError: ..., mapError要放在最尾端, mapError的功能是把不同類型的error轉為同一種類型的error後發出.
-- combine也有支援NSObject的KVO監聽
-- ObservableObject裡面的published屬性改變，居然有objectWillChange.sink可以用, 只是element是void, failure是Never, 適合用來觸發swift更新
+- combine也有支援NSObject的KVO監聽, 前提 1. 須為class，2. 須繼承`NSObject` 3. 屬性(簡易屬性、陣列、字典等必須能跟ObjectC呈現)要加上`@objc dynamic`(While the Swift language doesn’t directly support KVO, marking your properties @objc dynamic forces the compiler to generate hidden methods that trigger the KVO machinery.)
+```
+class TestObject: NSObject {
+  @objc dynamic var integerProperty: Int = 0
+}
+
+let obj = TestObject()
+let subscription = obj.publisher(for: \.integerProperty)
+  .sink {
+    print("integerProperty changes to \($0)")
+  }
+
+obj.integerProperty = 100
+obj.integerProperty = 200
+```
+- ObservableObject會自動產生objectWillChange方法, 可以給combinen用，其中的@published屬性改變，可以收到通知, element是void, failure是Never,可惜無法知道是哪個屬性更新，適合用來觸發swift更新，
+```
+class MonitorObject: ObservableObject {
+  @Published var someProperty = false
+  @Published var someOtherProperty = ""
+}
+
+let object = MonitorObject()
+let subscription = object.objectWillChange.sink {
+  print("object will change")
+}
+
+object.someProperty = true
+object.someOtherProperty = "Hello world"
+```
 
 **CombineExt(CombineCommunity/CombineEx)**
 - 可以用陣列的方式使用merge, zip, combinelatest，
@@ -200,5 +266,53 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3){
 - combine獨有: `output(at:)`，取得特定索引的值發出
 - combine獨有: `output(in:)`，取出特定範圍的值，並逐一發出元素，非打包發出
 - `contains(` 找到符合值即馬上結束並回傳true值
-- CurrentValueSubject的value值可以直接被修改，並局限只能用subject.send()更新值
+- CurrentValueSubject的value值可以直接被修改，不局限只能用subject.send()更新值
+- `.decode`可直接用來解析API的JSON值
+```
+//without .decode
+URLSession.shared
+  .dataTaskPublisher(for: url)
+  .tryMap { data, _ in
+    try JSONDecoder().decode(MyType.self, from: data)
+  }
 
+//with built-in decode
+URLSession.shared
+  .dataTaskPublisher(for: url)
+  .map(\.data)
+  .decode(type: MyType.self, decoder: JSONDecoder())
+
+```
+- print可加入時間點，方便debug, 在print參數加入TextOutputStream協定
+```
+class TimeLogger: TextOutputStream {
+  private var previous = Date()
+  private let formatter = NumberFormatter()
+
+  init() {
+    formatter.maximumFractionDigits = 5
+    formatter.minimumFractionDigits = 5
+  }
+
+  func write(_ string: String) {
+    let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return }
+    let now = Date()
+    print("+\(formatter.string(for: now.timeIntervalSince(previous))!)s: \(string)")
+    previous = now
+  }
+}
+
+let subscription = (1...3).publisher
+  .print("publisher", to: TimeLogger())
+  .sink { _ in }
+
+//+0.00111s: publisher: receive subscription: (1...3)
+//+0.03485s: publisher: request unlimited
+//+0.00035s: publisher: receive value: (1)
+//+0.00025s: publisher: receive value: (2)
+//+0.00027s: publisher: receive value: (3)
+//+0.00024s: publisher: receive finished
+
+```
+- publisher大都是struct，如果使用Share()，則以傳遞Reference取代傳遞value，如果搭配CurrentValueSubject可以達到shareReplay效果	
