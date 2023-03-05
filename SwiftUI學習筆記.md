@@ -65,7 +65,7 @@ ForEach需要用List或VStack包起來
 - @Published someProperty可以用$存取, 即使該class沒有繼承ObservableObject
 - 使用 assign(to: \.someProperty, on: self)可以將發出的元素綁定在自身的@Published值(Republishing), 會回傳一個strong reference
 - .onAppear {}
-- 如果某些情境用不著宣告ObservableObject/ObservedObject，只想簡單用`publisher`, 可用.onReceive(_:perform:) 當該View收到指定`Publisher`發送訊息時，就執行特定action
+- 如果某些情境用不著宣告ObservableObject/ObservedObject，只想簡單用`publisher`, 可用.onReceive(_:perform:)，常用情境如 View收到ViewModel的`Publisher`發送訊息時，就執行特定action
 ```
 struct ReceiverView: View {
     let timer = Timer.publish(every: 1.0, on: .main, in: .default).autoconnect()

@@ -45,6 +45,13 @@ class MyObject {
 }
 ```
 - 目前未知使用subscriber或custom subscriber的時機為何，已知可以.subscribe(subject)
+```
+let sourcePublisher = PassthroughSubject<Date, Never>()
+let subscription = Timer
+  .publish(every: 1.0 / valuesPerSecond, on: .main, in: .common)
+  .autoconnect()
+  .subscribe(sourcePublisher)
+```
 - 已知手動publisher.subscribe(subscriber)，沒有回傳值；跟publisher.sink的回傳值為AnyCancellable不同
 - `Future`是產生一個值後馬上結束或fail, 但api或許不適用，因為一創建就執行(greedy)，視情況使用
 - (備註)future is greedy, Future當它創建完後馬上執行，不用像publisher(lazy)需要subscriber, 如果有兩個以上的subscribe，它只會執行一次，並且share結果
@@ -150,9 +157,48 @@ let taps = PassthroughSubject<Void, Never>()
 - ObservableObject是讓普通的ViewModel, 轉化成SwiftUI-View可以讀取更新的protocol
 - CurrentValueSubject適合用來表示狀態的情境，PassthroughSubject適合用來表示事件的情境
 - 若要存取@Published的publisher型式的值，前面要加$
+- Combine的timeout運作方式與常用的timeout不同：若超過時間沒有收到元素，則會強制完成(無錯誤)；若要噴出錯誤，必須帶自訂的Error參數 
+```
+//3秒後完成
+srcPublisher
+    .timeout(.seconds(3), scheduler: DispatchQueue.main)
+    .sink { completion in
+        print("completion:\(completion)")
+    } receiveValue: { _ in ()}
+    .store(in: &subscriptions)
 
 
+//3秒後噴錯
+enum APIError: Error{
+    case timeout
+}
 
+srcPublisher
+	.timeout(.seconds(3), scheduler: DispatchQueue.main, customError: {.timeout})
+    .sink { completion in
+        print("completion:\(completion)")
+    } receiveValue: { _ in ()}
+    .store(in: &subscriptions)
 
+```
+- .measureInterval用來衡量元素之間的時間, value值本為nanoseconds, 轉為seconds較好閱讀
+```
+let srcPublisher = PassthroughSubject<Void, Never>()
+let measureSubject = srcPublisher.measureInterval(using: DispatchQueue.main)
 
+measureSubject
+    .sink { value in
+        print((Double(value.magnitude) / 1_000_000_000.0))
+    }
+    .store(in: &subscriptions)
+
+srcPublisher.send()
+DispatchQueue.main.asyncAfter(deadline: .now() + 3){
+    srcPublisher.send()
+}
+```
+- combine獨有: `output(at:)`，取得特定索引的值發出
+- combine獨有: `output(in:)`，取出特定範圍的值，並逐一發出元素，非打包發出
+- `contains(` 找到符合值即馬上結束並回傳true值
+- CurrentValueSubject的value值可以直接被修改，並局限只能用subject.send()更新值
 
