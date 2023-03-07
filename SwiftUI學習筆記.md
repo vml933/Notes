@@ -209,3 +209,26 @@ await MainActor.run {
   ... your UI code ...
 }
 ```
+- NavigationLink(destination:) 在MVVM架構底下，不應該直接指定destination是哪個View，要透過一個中介的方式，讓ViewModel回傳目標View.
+```
+var body: some View{
+ NavigationLink(destination: viewModel.nextView) {
+  Text("Next view")
+ }
+}
+//viewModel
+class MyViewModel: ObservableObject{
+ var nextView: some View {    
+   return ViewBuilder.makeNextView()
+  }
+}
+//view factory
+enum ViewBuilder{  
+  static func makeNextView() -> some View{    
+    let viewModel = NextViewModel()    
+    return NextView(viewModel: viewModel)
+  }  
+}
+
+
+```

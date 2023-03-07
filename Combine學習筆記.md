@@ -355,3 +355,13 @@ var stories: [Story] {
 }
 ```
 - `sink(receiveValue:)`, `setFailureType`, `assign(to:on:)`只適用在 Failure 為 Never的前提
+- $號前後的差別
+```
+class WeeklyWeatherViewModel: ObservableObject{
+	@Published var city: String = ""
+}
+
+$viewModel.city // Binding<String>
+viewModel.$city // Published<String>.Publisher
+
+```
