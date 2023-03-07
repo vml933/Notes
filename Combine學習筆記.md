@@ -43,6 +43,17 @@ class MyObject {
       .store(in: &subscriptions)
   }
 }
+
+//Fix
+class MyObject {
+  @Published var word: String = ""
+  var subscriptions = Set<AnyCancellable>()
+
+  init() {
+    ["A", "B", "C"].publisher
+      .assign(to: &$word)
+  }
+}
 ```
 - 目前未知使用subscriber或custom subscriber的時機為何，已知可以.subscribe(subject)
 ```
@@ -156,7 +167,7 @@ let taps = PassthroughSubject<Void, Never>()
 - 大部分`publisher`都是`struct`，但如果使用`share()`, 會回傳`Publishers.Share`；反之`PassthroughSubject`, `CurrentValueSubject`, `Future`為`Class`，就可以存取ref共享值；第一個訂閱者會觸發啟動，後續的訂閱者只是connect進來；若太晚訂閱，但不會收到上層已發射的值，頂多只會收到completion.除非使用RxSwift的ShareReplay(), 或搭配轉換成`makeConnectable()`
 按照doc顯示，share()是PassthroughSubject結合multicast，autoconnect()的結合體. 思考使用CurrentValueSubject搭配autoconnect&multicast，是否可達到ShareReplay的目的。
 - 如果publisher的Failure為Never的話, Sink可以有只處理元素.sink(receiveValue:而不用管complete的方法，不然都一定要處理complete
-- assertNoFailure 可以開發用
+- assertNoFailure 可以開發用, 若有錯誤扔出，即丟出fatal Error
 - map會攜帶明確error type,在sink裡面可以清楚的處理completion的failure type, 但tryMap會清掉error type, 變成單純的error,只好搭配mapError用 error as? SomeErrow 處理，或 switch case: case is SomeError: ..., mapError要放在最尾端, mapError的功能是把不同類型的error轉為同一種類型的error後發出.
 - combine也有支援NSObject的KVO監聽, 前提 1. 須為class，2. 須繼承`NSObject` 3. 屬性(簡易屬性、陣列、字典等必須能跟ObjectC呈現)要加上`@objc dynamic`(While the Swift language doesn’t directly support KVO, marking your properties @objc dynamic forces the compiler to generate hidden methods that trigger the KVO machinery.)
 ```
@@ -201,7 +212,7 @@ object.someOtherProperty = "Hello world"
 - 有flatMapLatest，與switchToLatest類似，只是不用_接一個值，小方便
 - 不會發生錯誤會不需要帶錯誤型態的CurrentValueRelay & PassthroughRelay, 除非被deinit, 不然無法手動發出complete(所以無法送出錯)
 - 有replaySubject可用
-- 串聯如果中間出錯，即使用.replaceError(with處理，串聯會改為正常結束; 使用replaceError(with:), Failure會變Never,待測使用CombineExt的ignoreFailure(completeImmediately:)是否遇到錯誤可避免中斷, 如果改用cache, 可以改丟一個Empty(): 一個不會送出元素，也不會結束(可設定)的publisher
+- 串聯如果中間出錯，即使用.replaceError(with處理，串聯會改為正常結束; 使用replaceError(with:), Failure會變Never,待測使用CombineExt的ignoreFailure(completeImmediately:)是否遇到錯誤可避免中斷, 如果改用cache:(重發替代Publisher), 可以改丟一個Empty(): 一個不會送出元素，也不會結束(可設定)的publisher
 - collect(count)不須等到publisher結束就會發出
 - 在API實務上, 常常會遇到api回的錯誤訊息，不會送出URLError的404, 而是送出自訂的錯誤Json, 這時在combine可用tryMap, 裡頭用JSONSerialization.jsonObject(with: data)(或SwifyJson)解析dic自訂錯誤訊息Json，並送出自訂API的錯誤；實務2: 如果要在api裡處理內建error或未知error，然後發出自訂error, 可使用is搭配default, ex:
 ```
@@ -267,7 +278,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3){
 - combine獨有: `output(in:)`，取出特定範圍的值，並逐一發出元素，非打包發出
 - `contains(` 找到符合值即馬上結束並回傳true值
 - CurrentValueSubject的value值可以直接被修改，不局限只能用subject.send()更新值
-- `.decode`可直接用來解析API的JSON值
+- `.decode`可直接用來解析API的JSON值, 可丟出一個錯誤, 搭配mapError
 ```
 //without .decode
 URLSession.shared
@@ -280,7 +291,16 @@ URLSession.shared
 URLSession.shared
   .dataTaskPublisher(for: url)
   .map(\.data)
-  .decode(type: MyType.self, decoder: JSONDecoder())
+  .decode(type: MyType.self, decoder: JSONDecoder()
+  .mapError{error -> API.Error in
+       switch error{
+          case is URLError:
+	         return Error.addressUnreachable(EndPoint.stories.url)
+ 			default:
+             return Error.invalidResponse
+           }
+   }
+
 
 ```
 - print可加入時間點，方便debug, 在print參數加入TextOutputStream協定
@@ -315,4 +335,23 @@ let subscription = (1...3).publisher
 //+0.00024s: publisher: receive finished
 
 ```
-- publisher大都是struct，如果使用Share()，則以傳遞Reference取代傳遞value，如果搭配CurrentValueSubject可以達到shareReplay效果	
+- publisher大都是struct，如果使用Share()，則以傳遞Reference取代傳遞value，如果搭配CurrentValueSubject可以達到shareReplay效果
+- 過濾資料群中，是否有符合關鍵字群的聰明作法
+```
+var allStories = [Story]()
+var filter = [String]()
+
+var stories: [Story] {
+    guard !filter.isEmpty else {
+        return allStories
+    }
+    return allStories
+        .filter { story -> Bool in
+            return filter.reduce(false) { isMatch, keyword -> Bool in
+                return isMatch || story.title.lowercased().contains(keyword)
+            }
+        }
+}
+}
+```
+- `sink(receiveValue:)`, `setFailureType`, `assign(to:on:)`只適用在 Failure 為 Never的前提

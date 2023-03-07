@@ -71,6 +71,22 @@ Error相關
 ```
 guard case .failure(let error) = $0 
 else {return}
+
+//or 
+enum MyError: Error{
+    case ohNo
+}
+
+Just("Hello")
+    .setFailureType(to: MyError.self)
+    .eraseToAnyPublisher()
+    .sink { completion in
+        switch completion{
+        case .failure(.ohNo):
+            ()
+        case .finished:
+            ()
+        }    
 ```
 - 使用`@MainActor`自动在主线程更新UI, 只能运行在async/await环境中
 - 可使用compare，結果是回傳比較的result:
@@ -398,3 +414,4 @@ let (filesResult, statusResult) = try await (files, status)
 self.files = filesResult
 self.status = statusResult
 ```
+- 除了有自訂義CustomStringConvertible可用，也有CustomDebugStringConvertible可用，兩者的用法很類似，只是意圖不同
