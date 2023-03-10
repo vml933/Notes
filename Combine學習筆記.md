@@ -365,3 +365,53 @@ $viewModel.city // Binding<String>
 viewModel.$city // Published<String>.Publisher
 
 ```
+- 也有這種View綁定ViewModel的方法，在view初始化才把viewModel需要的參數傳進去
+```
+struct AsyncThumbnailView: View {
+    let url: URL
+    
+    @StateObject private var imageStore: AsyncImageStore
+    
+    init(url: URL) {
+        self.url = url
+        
+        // Initialize the image store with the provided URL.
+        _imageStore = StateObject(wrappedValue: AsyncImageStore(url: url))
+    }
+    
+    var body: some View {
+        Image(nsImage: imageStore.thumbnailImage)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .onAppear() {
+                imageStore.loadThumbnail()
+            }
+    }
+}
+
+class AsyncImageStore: ObservableObject {
+    var url: URL
+
+    @Published var thumbnailImage: NSImage
+    @Published var image: NSImage
+    
+    private var subscriptions: Set<AnyCancellable> = []   
+    private let errorImage: NSImage
+    
+    init(url: URL, loadingImage: NSImage = NSImage(systemSymbolName: "questionmark.circle", accessibilityDescription: "questionmark")!,
+         errorImage: NSImage = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "xmark")!) {
+        self.url = url
+        self.thumbnailImage = loadingImage
+        self.image = loadingImage
+        self.errorImage = errorImage
+    }
+    
+    func loadThumbnail() {
+        ImageLoader.loadThumbnail(url: url)
+            .receive(on: DispatchQueue.main)
+            .replaceError(with: errorImage)
+            .assign(to: \.thumbnailImage, on: self)
+            .store(in: &subscriptions)
+    }    
+}
+```
