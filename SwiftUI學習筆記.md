@@ -24,7 +24,7 @@
 - 當你使用class-instance當作model時，除非重新指定instance,不然修改裡面的變數並不會trigger UI-Refresh
 - OservedObject配合@Published，當class實作ObservableObject時，裡頭的@Published都會自動實作requires:objectWillChange，並將Class資料從View移至外部，不為View所有，只是添加訂閱關係，不影響儲存，@ObservedObject裡頭的@Published屬性，在view中的運作有如State
 ```
-//@Published score等同於沒有wrapper的變數添加手動呼叫objectWillChange
+//@Published score等同於沒有wrapper的變數添加手動呼叫objectWillChange,即使View層沒有再監聽這個變數，View層依然會觸發一次re-render
 class Model: ObservableObject{
     @Published var score: Int = 0
     
