@@ -427,3 +427,13 @@ DispatchQueue.main.async {
     // Update the UI
 }
 ```
+QoS主要有分4個等級
+```
+.userInteractive: This is the highest priority QoS class and is used for tasks that require immediate user interaction, such as rendering animations or responding to user input.
+
+.userInitiated: This QoS class is used for tasks initiated by the user, such as opening a file or initiating a network request.
+
+.default: This is the default QoS class and is used for tasks that don't require a higher priority QoS class, such as performing background computations or I/O operations.
+
+.utility: This QoS class is used for long-running tasks that are not time-critical, such as indexing files or performing backups.
+```
