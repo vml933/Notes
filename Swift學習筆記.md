@@ -415,3 +415,15 @@ self.files = filesResult
 self.status = statusResult
 ```
 - 除了有自訂義CustomStringConvertible可用，也有CustomDebugStringConvertible可用，兩者的用法很類似，只是意圖不同
+- `DispatchQueue.global`與`DispatchQueue.main`差異: DispatchQueue是Swift的Grand Central Dispatch (GCD), `DispatchQueue.global`表示全域的並行queue, 執行非UI的背景執行工作, 高優先度, 主要用來優化效能, 預設的QoS(quality of service)是`.default`
+```
+DispatchQueue.global(qos: .background).async {
+    // Perform a background task
+}
+```
+`DispatchQueue.main`則與更新UI相關，預設的QoS為`.userInteractive`
+```
+DispatchQueue.main.async {
+    // Update the UI
+}
+```
