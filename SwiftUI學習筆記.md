@@ -246,6 +246,17 @@ enum ViewBuilder{
     return NextView(viewModel: viewModel)
   }  
 }
+```
 
+- Preview可以設定預覽大小, 有`.device`, `sizeThatFits`, `.fixed(width:, height:)`
+```
+struct MyView_Previews: PreviewProvider {
 
+  static var previews: some View {
+
+    JokeCardView()
+      .previewLayout(.sizeThatFits)
+
+  }
+}
 ```

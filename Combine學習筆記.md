@@ -15,18 +15,30 @@ public enum Event<Element> {
 - `assign(to:on:)`可用來binding UIKIT(但支援並不全面)，因為可以用來bind keypath, 只能用來處理Failure = Never的情形
 - `assign(to:)`可用來binding @Published。
 ```
+public final class JokesViewModel {
+	@Published var joke = Joke.starter
+
+	public func fetchJoke() {
+	    jokesService.publishers()
+    	   	.decode(type: Joke.self, decoder: Self.decoder)
+       		.receive(on: DispatchQueue.main)
+		//前綴字元:$ 取得屬性底下的publisher
+		//前綴字元:& 表示inout reference
+	       	.assign(to: &$joke)
+	}
+}
+```
+```
 class SomeObject {
    @Published var value = 0
 }
     
 let object = SomeObject()
-//使用前綴字元:$ 取得@Publisher屬性底下的publisher
 object.$value.sink {
     print($0)
 }
     
 (0..<10).publisher
-//前綴字元&表示inout reference
    .assign(to: &object.$value)
 ```
 - `assign(to:on:)`會回傳一個Anycancel, assign(to:)不會，因為`assign(to:)` binding的@Published變數, 當該變數deinitialized時，subscription會自己取消， There is one tricky part about `assign(to:on:)` — It’ll strongly capture the object provided to the on argument.
