@@ -13,10 +13,15 @@ public enum Event<Element> {
 ```
 - Publishers's `completion`事件可能為`successful`或`failure`
 - `assign(to:on:)`可用來binding UIKIT(但支援並不全面)，因為可以用來bind keypath, 只能用來處理Failure = Never的情形
-- `assign(to:)`可用來binding @Published。
+- `assign(to:)`可用來binding @Published，但不會觸發該變數的didSet，要用sink指定的方式才會觸發。
 ```
+//assign(to:) not trigger didSet
 public final class JokesViewModel {
-	@Published var joke = Joke.starter
+	@Published var joke = Joke.starter{
+		didSet{
+			//something not trigger
+		}
+	}
 
 	public func fetchJoke() {
 	    jokesService.publishers()
@@ -27,6 +32,24 @@ public final class JokesViewModel {
 	       	.assign(to: &$joke)
 	}
 }
+
+//sink trigger didSet
+public final class JokesViewModel {
+	@Published var joke = Joke.starter{
+		didSet{
+		//trigger something
+		}
+	}
+
+	public func fetchJoke() {
+	    jokesService.publishers()
+    	   	.decode(type: Joke.self, decoder: Self.decoder)
+       		.receive(on: DispatchQueue.main)
+		.sink{ joke = $0 }
+		.store(in: &subscriptions)
+	}
+}
+
 ```
 ```
 class SomeObject {
@@ -425,5 +448,23 @@ class AsyncImageStore: ObservableObject {
             .assign(to: \.thumbnailImage, on: self)
             .store(in: &subscriptions)
     }    
+}
+```
+- 如果是監聽ObservableObject的@Published值，記得第一次要`.dropFirst`，以免收到初始值
+```
+class ViewModel: ObservableObject{
+	@Published public var myProperty: String?
+}
+
+class SomeClass{
+	let vm = ViewModel()
+        vm.$myProperty
+            .dropFirst()
+            .eraseToAnyPublisher()
+            .sink {
+                result = $0
+            }
+            .store(in: &subscriptions)
+
 }
 ```

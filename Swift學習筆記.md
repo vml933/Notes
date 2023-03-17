@@ -437,3 +437,5 @@ QoS主要有分4個等級
 
 .utility: This QoS class is used for long-running tasks that are not time-critical, such as indexing files or performing backups.
 ```
+- `@discardableResult`關閉func有回傳值時，但使用的地方沒有宣告變數接，造成的warning
+- 可在func中放入`dispatchPrecondition(condition: .notOnQueue(DispatchQueue.main))`預防該func不會在指定queue中執行
