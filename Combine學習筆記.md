@@ -245,6 +245,7 @@ object.someOtherProperty = "Hello world"
 - 好用的share(replay:)可用
 - 有自訂的AnyPublisher.create可用
 - 有flatMapLatest，與switchToLatest類似，只是不用_接一個值，小方便
+- material(): 與RxSwift不同，若遇到錯誤，會馬上completed with .finished
 - 不會發生錯誤會不需要帶錯誤型態的CurrentValueRelay & PassthroughRelay, 除非被deinit, 不然無法手動發出complete(所以無法送出錯)
 - 有replaySubject可用
 - 串聯如果中間出錯，即使用.replaceError(with處理，串聯會改為正常結束; 使用replaceError(with:), Failure會變Never,待測使用CombineExt的ignoreFailure(completeImmediately:)是否遇到錯誤可避免中斷, 如果改用cache:(重發替代Publisher), 可以改丟一個Empty(): 一個不會送出元素，也不會結束(可設定)的publisher
