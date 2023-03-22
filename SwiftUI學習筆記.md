@@ -48,6 +48,7 @@ class Model: ObservableObject{
 差異點:
 @ObservedObject:會隨著View的更新多次建立, 主要發生在View與Model(external)之間的綁定(View向Model訂閱，Model向View通知)
 @StateObject:Reference for ObservableObject，只會被建立一次，是@State的兄弟版
+- @Published只能用在主線程
 
 - @AppStorage 直接對UserDefaults讀寫並帶有觸發更新UI功能
 - 使用@EnvironmentObject，將某個Object拉出環境?並儲存為一個屬性, 必須是 Class for ObservableObject, 全部的childView都有效, 並必須已經為initialized完成.使用@EnvironmentObject不需要再重新初始化
