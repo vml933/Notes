@@ -261,3 +261,21 @@ struct MyView_Previews: PreviewProvider {
   }
 }
 ```
+- 透過init初始化@Binding, @ObservedObject, @StateObject的參數, 變數前面要加底線
+```
+struct SomeView: View {
+
+ @Binding var myIndex: Int
+ @StateObject var vm: My_vm
+
+ init(parentIndex: Binding<Int>){
+     _myIndex = parentIndex
+     _vm = StateObject(wrappedValue:My_vm())
+ }
+
+  var body: some View {
+    EmptyView()
+  }
+}
+
+```
