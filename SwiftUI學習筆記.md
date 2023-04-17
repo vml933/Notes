@@ -277,5 +277,47 @@ struct SomeView: View {
     EmptyView()
   }
 }
-
 ```
+- 如果有使用到GeometryReader並讀取到window的屬性，裡面的sub view會render兩次:產生兩次Subview
+```
+struct SomeView: View {
+
+  var body: some View {
+	GeometryReader { window in
+		//Init()觸發兩次 
+		SubView()
+		  .frame(minWidth: window.size.width)
+		//Init()觸發一次 
+		SubView()
+		  .frame(minWidth: 100)
+	}
+    
+  }
+}
+```
+- 如果有使用@State的變數，但view沒有其他的元素監聽該變數，即使改變該變數的值，畫面也不會重畫；即使有元素監聽該值，如果改變的值跟上一次相同，也不會重畫
+```
+struct TestContent_view: View {
+    
+    @State var param = "0"
+    
+    var body: some View {
+        VStack{
+            Button("set 0") {
+                param = "0"
+            }
+            Button("set 1") {
+                param = "1"
+            }
+            //Text(testcount) //加入Text後，按Button才會變色
+        }
+        .frame(width: 800, height: 600)
+        .background(.random) //按Button不會變色
+    }
+}
+```
+
+
+
+
+
