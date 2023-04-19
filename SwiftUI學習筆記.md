@@ -316,8 +316,17 @@ struct TestContent_view: View {
     }
 }
 ```
+- 若view端的List需要綁定selection在vm的selection上，vm的變數不需宣告成@Published, 避免view端多除的UI-refresh
+```
+struct SideBar_view: View {
+	@StateObject private var vm: SideBar_vm
+	var body: some View {
+		List(vm.projects, selection: $vm.selectedProjectID){...}
+	}
+}
 
-
-
-
+class SideBar_vm: ObservableObject{
+	var selectedProjectID: UUID?
+}
+```
 
