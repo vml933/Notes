@@ -248,7 +248,7 @@ object.someOtherProperty = "Hello world"
 - material(): 與RxSwift不同，若遇到錯誤，會馬上completed with .finished
 - 不會發生錯誤會不需要帶錯誤型態的CurrentValueRelay & PassthroughRelay, 除非被deinit, 不然無法手動發出complete(所以無法送出錯)
 - 有replaySubject可用
-- 串聯如果中間出錯，即使用.replaceError(with處理，串聯會改為正常結束; 使用replaceError(with:), Failure會變Never,待測使用CombineExt的ignoreFailure(completeImmediately:)是否遇到錯誤可避免中斷, 如果改用cache:(重發替代Publisher), 可以改丟一個Empty(): 一個不會送出元素，也不會結束(可設定)的publisher
+- 串聯如果中間出錯，即使用.replaceError(with處理，串聯會改為正常結束; 使用replaceError(with:), Failure會變Never,待測使用CombineExt的ignoreFailure(completeImmediately:)是否遇到錯誤可避免中斷, 如果改用cache:(重發替代Publisher), 可以改丟一個Empty(): 一個不會送出元素，馬上結束(可設定不結束)的publisher
 - collect(count)不須等到publisher結束就會發出
 - 在API實務上, 常常會遇到api回的錯誤訊息，不會送出URLError的404, 而是送出自訂的錯誤Json, 這時在combine可用tryMap, 裡頭用JSONSerialization.jsonObject(with: data)(或SwifyJson)解析dic自訂錯誤訊息Json，並送出自訂API的錯誤；實務2: 如果要在api裡處理內建error或未知error，然後發出自訂error, 可使用is搭配default, ex:
 ```

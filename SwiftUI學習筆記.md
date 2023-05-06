@@ -329,4 +329,17 @@ class SideBar_vm: ObservableObject{
 	var selectedProjectID: UUID?
 }
 ```
-
+- Text預設字型大小為13.0，內建的字型表
+```
+.largeTitle 34.0
+.title1	28.0
+.title2	22.0
+.title3	20.0
+.headline 17.0
+.callout 16.0
+.subheadline 15.0
+.body 17.0
+.footnote 13.0
+.caption1 12.0
+.caption2 11.0
+```
