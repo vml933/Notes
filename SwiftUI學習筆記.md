@@ -329,6 +329,8 @@ class SideBar_vm: ObservableObject{
 	var selectedProjectID: UUID?
 }
 ```
+- 如果不使用代入isShow的Binding<Bool>給sheet的view做關閉的橋接，在sheet的view中可以使用@Environment(\.dismiss) private var dismiss直接關閉
+- @Environment(\.isPresented) private var isPresented 跟  onAppear(perform:)類似，但isPresented會被呼叫多次
 - Text預設字型大小為13.0，內建的字型表
 ```
 .largeTitle 34.0
