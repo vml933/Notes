@@ -345,3 +345,4 @@ class SideBar_vm: ObservableObject{
 .caption1 12.0
 .caption2 11.0
 ```
+- interactiveDismissDisabled: 防止使用者用手勢下拉 / 按空白處的方式關閉sheet或popover

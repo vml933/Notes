@@ -49,6 +49,22 @@ while let animal = animalIterator.next() {
     }
   }
 ```  
+- async let 可以確保非同步時一定有值，概念類似第三方套件的promise，只能用await取其中的值，PS: files & status是同時發出要求，status並不會等files
+```  
+//status() & availableFiles() start at same time
+do {
+  async let files = try model.availableFiles()
+  async let status = try model.status()
+  let (filesResult, statusResult) = try await (files, status)
+} catch {
+  lastErrorMessage = error.localizedDescription
+}
+
+//status() doesn’t start until the call to availableFiles() completes.
+files = try await model.availableFiles()
+status = try await model.status()
+```  
+
 - decode時轉換Key值型態
 ```
 let decoder = JSONDecoder()
@@ -440,3 +456,4 @@ QoS主要有分4個等級
 - `@discardableResult`關閉func有回傳值時，但使用的地方沒有宣告變數接，造成的warning
 - 可在func中放入`dispatchPrecondition(condition: .notOnQueue(DispatchQueue.main))`預防該func不會在指定queue中執行
 - 承上，反之 `dispatchPrecondition(condition: .onQueue(.main))` 檢查是否在該queue執行
+- `Task.sleep(for:)` 讓task暫停一段時間且不會卡線程，方便測試用?
