@@ -169,6 +169,7 @@ DEVICE_BOTTOM_PADDING: 34.0
 parentView.addSubview(childVC.view))
 //建立子母關系，確保功能都正常
 parentVC.addChild(childVC)
+//Notice child view controller added or removed from a container view controller is complete.
 childVC.didMove(toParent: self)
 ```
 - `autoreleasepool`: 每一輪 run loop 中，如果某些物件只有在這一輪 run loop 中有用，之後就應該釋放，我們可以先把物件放進 auto-release pool 裡頭，等到這一輪 run loop 的時候，再把 auto-release pool 倒空。

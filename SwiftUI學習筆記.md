@@ -343,7 +343,7 @@ struct TestContent_view: View {
             Button("set 1") {
                 param = "1"
             }
-            //Text(testcount) //加入Text後，按Button才會變色
+            //Text(param) //加入Text後，按Button才會變色
         }
         .frame(width: 800, height: 600)
         .background(.random) //按Button不會變色
@@ -363,8 +363,8 @@ class SideBar_vm: ObservableObject{
 	var selectedProjectID: UUID?
 }
 ```
-- 如果不使用代入isShow的Binding<Bool>給sheet的view做關閉的橋接，在sheet的view中可以使用@Environment(\.dismiss) private var dismiss直接關閉
-- @Environment(\.isPresented) private var isPresented 跟  onAppear(perform:)類似，但isPresented會被呼叫多次
+- 如果不使用代入isShow的Binding<Bool>給sheet的view做關閉的橋接，在sheet的view中可以使用`@Environment(\.dismiss) `private var dismiss直接關閉
+- `@Environment(\.isPresented)` private var isPresented 跟  `onAppear(perform:)`類似，但isPresented會被呼叫多次
 - Text預設字型大小為13.0，內建的字型表
 ```
 .largeTitle 34.0
@@ -379,4 +379,5 @@ class SideBar_vm: ObservableObject{
 .caption1 12.0
 .caption2 11.0
 ```
-- interactiveDismissDisabled: 防止使用者用手勢下拉 / 按空白處的方式關閉sheet或popover
+- `interactiveDismissDisabled`: 防止使用者用手勢下拉 / 按空白處的方式關閉sheet或popover
+- 背景類的View可用`.ignoresSafeArea`填滿邊界，`.allowsHitTesting(false)`忽略點擊
