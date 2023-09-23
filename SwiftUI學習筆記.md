@@ -6,25 +6,44 @@
 當struct或class實作Hashable時，使用List或Foreach時，就可以取代 \.id為 \.self
 (If your data object implements Hashable, you can also tell SwiftUI to use the entire object as the unique identifier. )
 
-**@State**
+@State
+==
 - State是一個property wrapper類型，可以被SwiftUI讀取與寫入
-- 當變數宣告為State，是指該View擁有該變數Data的Reference(存在其他儲存空間，由SwiftUI管理), 而非直接存取Data,(因為宣告@State的地方為Struct View，如果要指定值，complier會報錯，狀態刷新:重建View時，為了保持狀態同步，必須額外儲存空間)，當state的值改變時，view會重新complier body(SwiftUI re-render), @sState被用來當single source of truth 
+- State是Value Type，若當參數傳送，是copy by value
+- 當變數宣告為State，是指該View擁有該變數Data的Reference(存在其他儲存空間，由SwiftUI管理), 而非直接存取Data,(因為宣告@State的地方為Struct View，如果要指定值，complier會報錯，狀態刷新:重建View時，為了保持狀態同步，必須額外儲存空間)，當state的值改變時，view會重新complier body(SwiftUI re-render), @State被用來當single source of truth 
 - 擁有@Published特性
 - 當宣告@State var myVar時， 編輯器背後自動產生 var myVar = State<Int>(initialValue: 0), 可透過(有底線) _myVar.wrappedValue 取得該值; 若要將該值放到Binding<T>的變數時，可用myVar.projectedValue。但如果是手動宣告var myVar = State<Int>(initialValue: 0)，變數值前面不用加底線
 - `@State var myIndex` 等於 `_myIndex.wrappedValue`
 - `$myIndex` 等於 `_myIndex.projectedValue` : `Binding<T>`
-- State是Value Type，若當參數傳送，是copy by value
 - 若將一個struct(內含許多property)，宣告成State，可正常運作，但沒效率，因為其中一個property改變，就會將整個struct的實體換掉，所有相關聯的UI都會Trigger Refresh，影響效能，請小心使用struct配合State。
 - 若將一個class宣告成State, 則不會有作用. 
 
 **@ObservedObject**
-- 變數宣告為ObservedObject時，代表變數被移除View的變數空間，並用binding的方式相關聯
-- 表示該變數為外部儲存，換句說話，該資料並不屬於View
+==
 - 擁有@Published特性
+- 變數有@ObservedObject時，代表變數為外部所擁有，用binding的方式相關聯，來源可能為母層或Environment object，通常用來監聽屬性變化用
+- 注意! view本身不create ObservedObject，如果view本身有create ObservedObject，該view UI重刷時, ObservedObject也會重新建立
+```
+struct ParentView: View {
+    @ObservedObject var viewModel = ParentViewModel()
+
+    var body: some View {
+        ChildView(viewModel: viewModel)
+    }
+}
+
+struct ChildView: View {
+    @ObservedObject var viewModel: ParentViewModel
+
+    var body: some View {
+        // Use viewModel here
+    }
+}
+```
 - 當你使用class-instance當作model時，除非重新指定instance,不然修改裡面的變數並不會trigger UI-Refresh
 - OservedObject配合@Published，當class實作ObservableObject時，裡頭的@Published都會自動實作requires:objectWillChange，並將Class資料從View移至外部，不為View所有，只是添加訂閱關係，不影響儲存，@ObservedObject裡頭的@Published屬性，在view中的運作有如State
 ```
-//@Published score等同於沒有wrapper的變數添加手動呼叫objectWillChange,即使View層沒有再監聽這個變數，View層依然會觸發一次re-render
+//@Published score等同於非@Published的nonPubishScore, 手動呼叫objectWillChange,即使View層沒有再監聽這個變數，View層依然會觸發一次re-render
 class Model: ObservableObject{
     @Published var score: Int = 0
     
@@ -41,14 +60,29 @@ class Model: ObservableObject{
 
 ```
 - 因為Publisher運作有如State，若使用@Published的屬性必須value type: 基本型態或struct
+
+**@StateObject**
+==
+- StateObject是Reference type，用來宣告該屬性被View擁有，是@State的兄弟版(Value type)
+- 有別於@ObservedObject，不會被UI重刷而重建，只會被建立一次
+- Lifecycle與View綁定，適合用來當View的ViewModel
+- @Published在哪個thread被建立，就只能用在該thread，除非搭配`receive(on:)`切換thread監聽
+```
+struct MyView: View {
+    @StateObject private var viewModel = MyViewModel()
+
+    var body: some View {
+        // Use viewModel here
+    }
+}
+```
+
 - @StateObject vs @ObservedObject 差別:
 
 相同點: 兩者都必須實作ObservableObject, 並配合@Published
 
 差異點:
 @ObservedObject:會隨著View的更新多次建立, 主要發生在View與Model(external)之間的綁定(View向Model訂閱，Model向View通知)
-@StateObject:Reference for ObservableObject，只會被建立一次，是@State的兄弟版
-- @Published在哪個thread被建立，就只能用在該thread，除非搭配`receive(on:)`切換thread監聽
 
 - @AppStorage 直接對UserDefaults讀寫並帶有觸發更新UI功能
 - 使用@EnvironmentObject，將某個Object拉出環境?並儲存為一個屬性, 必須是 Class for ObservableObject, 全部的childView都有效, 並必須已經為initialized完成.使用@EnvironmentObject不需要再重新初始化
