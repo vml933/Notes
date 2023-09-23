@@ -457,3 +457,39 @@ QoS主要有分4個等級
 - 可在func中放入`dispatchPrecondition(condition: .notOnQueue(DispatchQueue.main))`預防該func不會在指定queue中執行
 - 承上，反之 `dispatchPrecondition(condition: .onQueue(.main))` 檢查是否在該queue執行
 - `Task.sleep(for:)` 讓task暫停一段時間且不會卡線程，方便測試用?
+- 如果要使用保留字當作 enum的變數名稱，可用單引號
+```
+enum OnboardingUserInput{
+    case `continue`(isFlippable: Bool) //continue為保留字,用單引號包著
+    case skip(isFlippable: Bool)
+    case finish
+    case objectCannotBeFlipped
+    case flipObjectAnyway
+}
+```
+Logger相關
+---
+
+**Log Levels:**
+1. `Debug`: Useful only during debugging
+1. `Info`: Helpful but not essential for troubleshooting
+1. `Notice (Default)`: Essential for troubleshooting
+1. `Error`: Error seen during execution
+1. `Fault`: Bug in program
+
+**Persistence:**
+1. `Debug`: Not persisted
+1. `Info`: Persisted only during log collect
+1. `Notice`: Persisted up to a storage limit
+1. `Error`: Persisted up to a storage limit
+1. `Fault`: Persisted up to a storage limit
+
+
+```
+let logger = Logger(subsystem: "com.example.Wallet", category: "networking")
+```
+[Reference](https://medium.com/@MariamBabutsa/why-you-should-use-logger-over-print-for-logging-you-apps-data-6f4085500a76)
+
+- 除了用Breakpoint，也可以用Watchpoint監聽觸發變化的時機
+
+
