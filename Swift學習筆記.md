@@ -22,6 +22,45 @@ while let animal = animalIterator.next() {
 	print(animal)
 }
 ```
+- AsyncSequence只定義取得Element的方式，本身並不產生Element，是由裡頭的Iterator產生Element
+```
+//自訂義AsyncSequence
+struct Counter: AsyncSequence {
+    typealias Element = Int
+    let howHigh: Int
+
+
+    struct AsyncIterator: AsyncIteratorProtocol {
+        let howHigh: Int
+        var current = 1
+
+
+        mutating func next() async -> Int? {
+            // A genuinely asynchronous implementation uses the `Task`
+            // API to check for cancellation here and return early.
+            guard current <= howHigh else {
+                return nil
+            }
+
+
+            let result = current
+            current += 1
+            return result
+        }
+    }
+
+
+    func makeAsyncIterator() -> AsyncIterator {
+        return AsyncIterator(howHigh: howHigh)
+    }
+}
+
+//呼叫
+for await number in Counter(howHigh: 10) {
+  print(number, terminator: " ")
+}
+// Prints "1 2 3 4 5 6 7 8 9 10 "
+```
 - async / await最大的好處，再也不用譫心 weak或strongly capture self
 - async / await Async的相關class大部分都可以 throws error，所以使用大部分都用try catch
 ```
@@ -492,5 +531,30 @@ let logger = Logger(subsystem: "com.example.Wallet", category: "networking")
 [Reference](https://medium.com/@MariamBabutsa/why-you-should-use-logger-over-print-for-logging-you-apps-data-6f4085500a76)
 
 - 除了用Breakpoint，也可以用Watchpoint監聽觸發變化的時機
+- `guard let` 除了常用的`return`, 也可以因應情境用`continue`
+```
+for imgUrl in imgUrls {
+	guard let shotFileInfo = ShotFileInfo(url: imgUrl) 
+	else {
+		logger.error("Can't get shotId from url: \"\(imgUrl)\")")
+		continue
+	}
+
+	newShots.append(shotFileInfo)
+}
+
+struct ShotFileInfo {
+    let fileURL: URL
+
+    init?(url: URL) {
+        fileURL = url
+        guard let shotID = CaptureFolderManager.parseShotId(url: url) else {
+            return nil
+        }
+    }
+}
+
+
+```
 
 
