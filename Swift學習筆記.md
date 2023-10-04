@@ -24,16 +24,21 @@ while let animal = animalIterator.next() {
 ```
 - AsyncSequence只定義取得Element的方式，本身並不產生Element，是由裡頭的Iterator產生Element
 ```
-//自訂義AsyncSequence
+//Custom AsyncSequence
 struct Counter: AsyncSequence {
+
+    //Required
     typealias Element = Int
-    let howHigh: Int
+    //Required
+    func makeAsyncIterator() -> AsyncIterator {
+        return AsyncIterator(howHigh: howHigh)
+    }
 
-
+    private let howHigh: Int
+    //custom AsyncIteratorProtocol
     struct AsyncIterator: AsyncIteratorProtocol {
         let howHigh: Int
         var current = 1
-
 
         mutating func next() async -> Int? {
             // A genuinely asynchronous implementation uses the `Task`
@@ -42,7 +47,6 @@ struct Counter: AsyncSequence {
                 return nil
             }
 
-
             let result = current
             current += 1
             return result
@@ -50,9 +54,6 @@ struct Counter: AsyncSequence {
     }
 
 
-    func makeAsyncIterator() -> AsyncIterator {
-        return AsyncIterator(howHigh: howHigh)
-    }
 }
 
 //呼叫
