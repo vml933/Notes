@@ -555,7 +555,21 @@ struct ShotFileInfo {
     }
 }
 
-
+```
+- 透過設定[DateComponentsFormatter.ZeroFormattingBehavior](https://developer.apple.com/documentation/foundation/datecomponentsformatter/zeroformattingbehavior)，可以控制顯示時間若帶有0，該如何顯示，ex: 1點10秒可顯示為`1:00:10`或`1h 10s`
+- 會throws的片段，除了可以用Do try catch，若不需知道Error類型，也可以用()?的方式，回傳結果
+```
+//常見
+do{
+  try FileManager.default.createDirectory(atPath: myPath, withIntermediateDirectories: true)
+}catch{
+  logger.error("Fail to create new project folder:\(myPath), error:\(error)")
+}
+//變化
+let result: ()? = try? fileManager.createDirectory(atPath: myPath, withIntermediateDirectories: true)
+guard result != nil else {
+  return false
+}
 ```
 
 

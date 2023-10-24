@@ -381,3 +381,44 @@ class SideBar_vm: ObservableObject{
 ```
 - `interactiveDismissDisabled`: 防止使用者用手勢下拉 / 按空白處的方式關閉sheet或popover
 - 背景類的View可用`.ignoresSafeArea`填滿邊界，`.allowsHitTesting(false)`忽略點擊
+- [`monospacedDigit`](https://developer.apple.com/documentation/swiftui/font/monospaceddigit()) 修改Text的字體，使用等寬的字元，適合用來控制日期顯示, 字串長度不會隨著數字字元變動
+- 如果要顯示進度，可使用Text搭配formater，自動帶%符號
+```
+Text(progress, format: .percent.precision(.fractionLength(0)))
+	.bold()
+	.monospacedDigit()
+```
+- 可自訂義`if` modifier，因應不同情境為view設定外型
+```
+private struct CreateButton: View {
+    
+    var isApplyBackground = false
+    
+    var body: some View {
+        Button(action: {
+            action()
+        }, label: {
+            Text(label)                
+        })
+        .if(isApplyBackground) { view in
+            view.background(RoundedRectangle(cornerRadius: 16.0).fill(Color.blue))
+        }
+    }
+}
+//自訂義 if modifier
+extension View {
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+```
+- Image可用Text包起來，然後用font size指定圖像大小
+```
+Text(Image(systemName: "button.programmable"))
+	.font(.largeTitle)
+
+```
