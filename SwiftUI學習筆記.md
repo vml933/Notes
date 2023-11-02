@@ -422,3 +422,4 @@ Text(Image(systemName: "button.programmable"))
 	.font(.largeTitle)
 
 ```
+- `alignmentGuide` 可自訂義對齊方式，例如A View的Bottom要對齊 B View的Top, 可搭配`.offset(x:y:)`使用
