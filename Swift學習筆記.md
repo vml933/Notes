@@ -498,6 +498,9 @@ QoS主要有分4個等級
 - 可在func中放入`dispatchPrecondition(condition: .notOnQueue(DispatchQueue.main))`預防該func不會在指定queue中執行
 - 承上，反之 `dispatchPrecondition(condition: .onQueue(.main))` 檢查是否在該queue執行
 - `Task.sleep(for:)` 讓task暫停一段時間且不會卡線程，方便測試用?
+- 若要使用Sleep, 可用ContinuousClock或SuspendingClock
+```
+```
 - 如果要使用保留字當作 enum的變數名稱，可用單引號
 ```
 enum OnboardingUserInput{
@@ -508,6 +511,41 @@ enum OnboardingUserInput{
     case flipObjectAnyway
 }
 ```
+計時相關
+---
+1. `ContinuousClock`: 即使系統觸發sleep也不會中斷，適合用來monitor，像是監聽func執行時間，loggin時間
+1. `SuspendingClock`: 與ContinuousClock，系統sleep則會暫停
+```
+import Foundation
+let clock = ContinuousClock()
+let startTime = clock.now()
+// Perform tasks, or wait; the clock keeps running even if the system sleeps
+// ...
+let endTime = clock.now()
+let elapsedDuration = endTime - startTime
+print(elapsedDuration)
+
+```
+- 暫停
+```
+let clock1 = ContinuousClock()
+try? await clock1.sleep(for: .seconds(1))
+
+let clock2 = SuspendingClock()
+try? await clock2.sleep(for: .seconds(1))
+
+//Concurrency
+Task{
+    try await Task.sleep(for: .seconds(1), clock: .suspending)
+}
+
+//Async
+Task{
+    try await Task.sleep(for: .seconds(1), clock: .continuous)
+}
+
+```
+
 Logger相關
 ---
 
@@ -571,5 +609,102 @@ guard result != nil else {
   return false
 }
 ```
+- Swift 5.9 新增 if, else的好用方式
+```
+//舊版
+func setValue(index: String){
+    let value: Int
+    if index == "a"{
+        value = 1
+    }else if index == "b"{
+        value = 2
+    }else if index == "c"{
+        value = 3
+    }else{
+        value = 0
+    }
+}
+
+//新版
+func setValue(index: String){
+    let value =
+    if index == "a"{ 1 }
+    else if index == "b"{ 2 }
+    else if index == "c"{ 3 }
+    else{ 0 }
+}
+
+//舊版
+func setValue(index: String){
+    let value: Int
+    switch index{
+    case "a":
+        value = 1
+    case "b":
+        value = 2
+    case "c":
+        value = 3
+    default:
+        value = 0
+    }
+}
+
+//新版
+func setValue(index: String){
+    let value: Int = switch index{
+    case "a": 1
+    case "b": 2
+    case "c": 3
+    default: 0
+    }
+}
+
+//舊版
+func getIndex(index: String) -> Int{
+    if index == "a"{
+        return 1
+    }else if index == "b"{
+        return 2
+    }else if index == "c"{
+        return 3
+    }else{
+        return 0
+    }
+}
 
 
+//新版
+func getIndex(index: String) -> Int{
+    if index == "a"{ 1 }
+    else if index == "b"{ 2 }
+    else if index == "c"{ 3 }
+    else{ 0 }
+}
+
+//舊版
+func getIndex(index: String) -> Int{
+    switch index{
+    case "a":
+        return 1
+    case "b":
+        return 2
+    case "c":
+        return 3
+    default:
+        return 0
+    }
+}
+
+
+//新版(有一行限制)
+func getIndex(index: String) -> Int{
+    switch index{
+    case "a": 1
+    case "b": 2
+    case "c": 3
+    default: 0
+    }
+}
+```
+- `open`與`public`差別: `open`在模組內或外皆可以被override與繼承; `public`只限在模組內被override與
+繼承
