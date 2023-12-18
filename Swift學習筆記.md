@@ -62,8 +62,10 @@ for await number in Counter(howHigh: 10) {
 }
 // Prints "1 2 3 4 5 6 7 8 9 10 "
 ```
-- async / await最大的好處，再也不用譫心 weak或strongly capture self
+- async / await最大的好處，再也不用譫心 weak或strongly capture self, 因為不再使用escaping closures callback
 - async / await Async的相關class大部分都可以 throws error，所以使用大部分都用try catch
+- 每一個`await`字眼出現，表示線程有可能改變; 每個`await`都會透過系統來引導執行，該系統會對task優先排序、取消請求、或是往上回報錯誤
+- Swift的Concurrency帶有子母(Hierarchy)概念: 允許母層task取消時，也取消所有子層task; 或是等待子層所有task都完成後，再完成母層task; 高等級task優先執行低等級task
 ```
   func fetchSongs(for artist: String) async throws -> [MusicItem] {
 
@@ -91,7 +93,7 @@ for await number in Counter(howHigh: 10) {
 ```  
 - async let 可以確保非同步時一定有值，概念類似第三方套件的promise，只能用await取其中的值，PS: files & status是同時發出要求，status並不會等files
 ```  
-//status() & availableFiles() start at same time
+//status() & availableFiles()同時執行，非線性順序
 do {
   async let files = try model.availableFiles()
   async let status = try model.status()
@@ -100,18 +102,19 @@ do {
   lastErrorMessage = error.localizedDescription
 }
 
-//status() doesn’t start until the call to availableFiles() completes.
+//status()會等到 availableFiles()完成後才執行，線性執行
 files = try await model.availableFiles()
 status = try await model.status()
 ```  
-
+- async let 在宣告時就會觸發，不會等宣告await時才觸發
 - decode時轉換Key值型態
 ```
 let decoder = JSONDecoder()
 decoder.keyDecodingStrategy = .convertFromSnakeCase
 ```
 - 可用extension的方式為protocol實現基本實作, 類似c#定義interface後，Abstract Class定義基本方法的概念
-- Task實體產生一個非同步的closure給async使用, 非必要, Task實體可用來與之非同步工作互動，如取消。 當你不再參照Task實體時，裡頭的非同步工作依然執行中
+- Task功能是在同步的環境中，產生一個非同步的closure供使用, 非必要, Task實體可用來與之非同步工作互動，如取消。 當你不再參照Task實體時，裡頭的非同步工作依然執行中
+- Task會在調用它的actor執行，如果要建立不在該actor上的task, 可用`Task.detached(priority:operation:)`
 - `Result<Data, Error>` 代表一個結果，成功可帶值，失敗可帶error，常用來回傳api, 跟Combine裡面的Publisher<Int, Never>類似
 ```
 func perform(_ request: URLRequest, completionHandler: @escaping (Result<Data, Error>) -> ())...
@@ -708,3 +711,18 @@ func getIndex(index: String) -> Int{
 ```
 - `open`與`public`差別: `open`在模組內或外皆可以被override與繼承; `public`只限在模組內被override與
 繼承
+- Swift 5.9可傳不固定數量、不確定類型的泛型當參數: Func傳多個不確定類型數量參數
+```
+//舊的: 一定要明確定義泛型的數量
+func oldGenericFunc<T, U>(a: T, b: U){
+    //...
+}
+//新的: 不用確認指定
+func newGenericFunc<each T>(_ p: repeat each T){
+    //...
+}
+//可傳多個、各種類型參數
+newGenericfunc("1", 1, "a", [1,2,3])
+
+```
+- class可掛@Observable，並配合async/await，而不需使用combine

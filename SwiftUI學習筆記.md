@@ -17,6 +17,7 @@
 - `$myIndex` 等於 `_myIndex.projectedValue` : `Binding<T>`
 - 若將一個struct(內含許多property)，宣告成State，可正常運作，但沒效率，因為其中一個property改變，就會將整個struct的實體換掉，所有相關聯的UI都會Trigger Refresh，影響效能，請小心使用struct配合State。
 - 若將一個class宣告成State, 則不會有作用. 
+- 將其他線程取得的值(常見如:API)指定給State變數, SwiftUI會自動處理跳至主線程，不需手動處理
 
 **@ObservedObject**
 ==
@@ -241,7 +242,7 @@ var headerView: some View {
 ```
 @Environment(\.window) var window: UIWindow?
 ```
-- SwiftUI perform裡頭run的是同步, 若要加非同步 async/await，要用Task包起來，或用.task modifier取代perform, .task也是view出現時就會觸發, task會處理view若被關掉時，取消所有的非同步Request
+- SwiftUI .onAppear(perform:)裡頭run的是同步, 若要加非同步 async/await，要用Task包起來，或用.task modifier取代.onAppear(perform:), .task也是view出現時就會觸發, task會處理view若被關掉時，取消所有的非同步Request
 - 因為ViewModel多用來觸發UI更新，所以可以在Model的class前面加上@MainActor使之回到主線程
 ```
 @MainActor class ViewModel: ObservableObject {
