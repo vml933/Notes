@@ -186,6 +186,14 @@ func generateAsyncRandomNumberFromContinuation() async -> Int {
 
 let asyncRandom = await generateAsyncRandomNumberFromContinuation()
 ```
+- Future有`value`屬性可以介接給Swift Concurrency用
+```
+func generateAsyncRandomNumberFromFuture() -> Future <Int, Never> { ... }
+//Combine integrating with Swift Concurrency
+let value = await generateAsyncRandomNumberFromFuture().value
+
+```
+
 - `map`可直接map keypath直接使用，最多三個，例如輸入coordinate, 使用.map(\.x, \.y)接; 但`tryMap`沒有keypath可接!
 - `prepend`除了可以接元素，也可以接publisher
 - `switchToLatest`主要使用在發送publisher的publisher, 主要用的情境為，使用者點擊後打API, API尚未回應，使用者又點擊了，即可取消上一次完成的request, 開始新的request,類似RxSwift的flatmapLatest
