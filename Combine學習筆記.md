@@ -173,7 +173,7 @@ subject.send(3)
 subject.send(completion: .finished)
 
 ```
-- async-await有一個語法類似Combine的Future,  `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
+- async/await有一個語法類似Combine的Future, 只回傳一個結果, `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
 ```
 func generateAsyncRandomNumberFromContinuation() async -> Int {
     return await withCheckedContinuation { continuation in
@@ -477,3 +477,4 @@ class SomeClass{
 
 }
 ```
+- A scheduler is not equal to a thread: 調度器不等於線程

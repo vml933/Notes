@@ -148,6 +148,20 @@ Just("Hello")
         }    
 ```
 - 使用`@MainActor`自动在主线程更新UI, 只能运行在async/await环境中
+- async/await有一個語法類似Combine的Future, 只回傳一個結果, `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
+```
+func generateAsyncRandomNumberFromContinuation() async -> Int {
+    return await withCheckedContinuation { continuation in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            let number = Int.random(in: 1...10)
+            continuation.resume(returning: number)
+        }
+    }
+}
+
+let asyncRandom = await generateAsyncRandomNumberFromContinuation()
+```
+
 - 可使用compare，結果是回傳比較的result:
 ```
  expiresAt.compare(Date()) == .orderedDescending
@@ -475,16 +489,20 @@ self.files = filesResult
 self.status = statusResult
 ```
 - 除了有自訂義CustomStringConvertible可用，也有CustomDebugStringConvertible可用，兩者的用法很類似，只是意圖不同
-- `DispatchQueue.global`與`DispatchQueue.main`差異: DispatchQueue是Swift的Grand Central Dispatch (GCD), `DispatchQueue.global`表示全域的並行queue, 執行非UI的背景執行工作, 高優先度, 主要用來優化效能, 預設的QoS(quality of service)是`.default`
+
+DispatchQueue是Swift的Grand Central Dispatch (GCD)
+- `DispatchQueue.global(qos:)`: 內建的並行Queue(Concurrent): 適合用來避免同时派送多個请求，以免對接收端造成太大壓力
+- `DispatchQueue(label:qos:)`: 自訂的序列Queue(Serial): 適合用來觀察多個長時間運行的工作，將所有結果結合在一起
+- `DispatchQueue.main`: 與更新UI相關，預設的QoS為`.userInteractive`
 ```
 DispatchQueue.global(qos: .background).async {
-    // Perform a background task
+	// Perform a background task
 }
-```
-`DispatchQueue.main`則與更新UI相關，預設的QoS為`.userInteractive`
-```
+DispatchQueue(label: "MyCustomQueue", qos: .userInitiated).async{
+	// Perform a long time task
+}
 DispatchQueue.main.async {
-    // Update the UI
+	// Update the UI
 }
 ```
 QoS主要有分4個等級
