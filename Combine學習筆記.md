@@ -111,7 +111,31 @@ func createFuture() -> Future<Int, Never> {
 let future = createFuture()
 // prints "Closure executed
 ```
-搭配`Deferred`可以達成等到有人訂閱才執行；Deferred是struct, Future是class，會造成有人訂閱後，就產生新的Future
+- 若`Future`內的closure為高工時(卡線程)，並無法透過.onSubscribe(on:)使切到主線程，這點跟RxSwift不用，除非加上Deferred(會有副作用，每次產生一個新的Future)或closer包closure
+```
+//副作用:每次產生一個新的Future
+func createFuture() -> AnyPublisher<Int, Never>{
+    Deferred {
+        Future<Int, Never>{ promise in
+            sleep(3)
+            promise(.success(100))
+        }
+    }
+    .eraseToAnyPublisher()
+}
+
+func createFuture() -> AnyPublisher<Int, Never>{
+    Future<Int, Never>{ promise in
+        DispatchQueue.global(qos: .userInitiated).async {
+            sleep(3)
+            promise(.success(100))
+        }
+    }
+    .eraseToAnyPublisher()
+}
+
+```
+搭配`Deferred`可以達成等到有人訂閱才執行，並可透過onSubscribe(on:)指定closure的線程；缺點是Deferred是struct, Future是class，會造成有人訂閱後，就產生新的Future
 ```
 func createFuture() -> AnyPublisher<Int, Never> {
   return Deferred {
