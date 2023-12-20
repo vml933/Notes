@@ -378,10 +378,15 @@ VALUE: _USER_CUSTOM_SERVICE_NAME._tcp
 
 - 搭配Breakpoint: 配合Action: Debugger Command，就可在runtime底下使用進階指令，例如印出帶有Timestamp的Log: expressing NSLog("hihi log!")
 
+`Task.sleep()` & `Thread.sleep()` 差別
+1. **Concurrency Model**: Task.sleep 適用Swift並行機制(`async/await`)而且不卡線程; `Thread.sleep`為舊版卡線程的一種方法
+1. **Bocking Behavior**: `Task.sleep`期間允許其他Task在相同的thread上執行; `Thread.sleep`則否
+1. **Cancellation**: `Task.sleep`可以被取消而中斷; `Thread.sleep`則否
 - 如果要模擬卡線程Block main thread，可用UNIX sleep command
 ```
 sleep(10)
 ```
+- 可使用`dispatchPrecondition(condition: .notOnQueue(.main))`或`Thread.isMainThread`檢查長時間task是否run在主線程
 - 常用標籤: `MARK:`, `TODO:`, `FIXME:`, 如果空一個加橫槓，會在jump bar上，標籤上下各加一條橫線
 - 可在BuildPhases新增Run Script，就可在編譯時，將TODO或FIXME以warning的方式呈現，幫助提醒
 ```
