@@ -205,8 +205,42 @@ Task {
     // Not set currentContent
     logMessage("This message has no user context") // Prints: This message has no user context
 }
-
 ```
+```
+//使用.withValue()給予@TaskLocal值
+class MyViewModel{
+    @TaskLocal static var taskLocalParam: String?
+    
+    func someFunc(){
+        print(Self.taskLocalParam)
+    }
+}
+
+class Sample{
+    let vm = MyViewModel()
+    
+    func someFunc(){
+        Task{
+            MyViewModel.$taskLocalParam.withValue(nil){
+                vm.someFunc() //print "nil"
+            }
+        }
+        
+        Task{
+            MyViewModel.$taskLocalParam.withValue("bingo"){
+                vm.someFunc() //print "bingo"
+            }
+        }
+        
+        print(MyViewModel.taskLocalParam) //print "nil"
+    }
+}
+
+let sample = Sample()
+sample.someFunc()
+```
+
+
 - async/await有一個語法類似Combine的Future, 只回傳一個結果, `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
 ```
 func generateAsyncRandomNumberFromContinuation() async -> Int {
@@ -820,4 +854,27 @@ for await line in bytes.lines {
   ...
 }
 
+```
+- 使用async/await搭配Combine，建立AsyncStream，製作計時器Sample
+```
+let startTime = Date().timeIntervalSince1970
+let timerSequence =
+Timer.publish(every: 1, tolerance: 1, on: .current, in: .default)
+  .autoconnect()
+  .map { date in
+    let duration = Int(date.timeIntervalSince1970 - startTime)
+    return "\(duration)s"
+  }
+  .values
+
+let timerTask = Task{
+  for await duration in timerSequence{
+    //print 1s
+    //print 2s
+    //print 3s
+  }
+}
+
+//Clear timer
+timerTask.cancel()
 ```
