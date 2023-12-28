@@ -65,7 +65,7 @@ for await number in Counter(howHigh: 10) {
 - async / await最大的好處，再也不用譫心 weak或strongly capture self, 因為不再使用escaping closures callback
 - async / await Async的相關class大部分都可以 throws error，所以使用大部分都用try catch
 - 每一個`await`字眼出現，表示線程有可能改變; 每個`await`都會透過系統來引導執行，該系統會對task優先排序、取消請求、或是往上回報錯誤
-- Swift的Concurrency帶有子母(Hierarchy)概念: 允許母層task取消時，也取消所有子層task; 或是等待子層所有task都完成後，再完成母層task; 高等級task優先執行低等級task
+- Swift的Concurrency帶有子母(Hierarchy)概念: 允許母層task取消時，也取消所有子層task(task呼叫另一task時，形成子母關係); 或是等待子層所有task都完成後，再完成母層task; 高等級task優先執行低等級task
 ```
   func fetchSongs(for artist: String) async throws -> [MusicItem] {
 
@@ -93,7 +93,7 @@ for await number in Counter(howHigh: 10) {
 ```  
 - async let 可以確保非同步時一定有值，概念類似第三方套件的promise，只能用await取其中的值，PS: files & status是同時發出要求，status並不會等files
 ```  
-//status() & availableFiles()同時執行，非線性順序
+//status() & availableFiles()同時執行，並行執行
 do {
   async let files = try model.availableFiles()
   async let status = try model.status()
@@ -114,7 +114,11 @@ decoder.keyDecodingStrategy = .convertFromSnakeCase
 ```
 - 可用extension的方式為protocol實現基本實作, 類似c#定義interface後，Abstract Class定義基本方法的概念
 - Task功能是在同步的環境中，產生一個非同步的closure供使用, 非必要, Task實體可用來與之非同步工作互動，如取消。 當你不再參照Task實體時，裡頭的非同步工作依然執行中
-- Task會在調用它的actor執行，如果要建立不在該actor上的task, 可用`Task.detached(priority:operation:)`
+- Task會在調用它的actor執行，如果要建立不在該actor上的task, 可用`Task.detached(priority:operation:)`:帶有特權的Task，建立的task就不會繼承父層的優先權，但會對執行效率造成負面影響，不建議使用。
+- 如果要將Task儲存在變數內，因為成功不會回傳值，有可能噴錯，故類型為
+```
+@State var downloadTask: Task<Void, Error>?
+```
 - `Result<Data, Error>` 代表一個結果，成功可帶值，失敗可帶error，常用來回傳api, 跟Combine裡面的Publisher<Int, Never>類似
 ```
 func perform(_ request: URLRequest, completionHandler: @escaping (Result<Data, Error>) -> ())...
@@ -147,7 +151,62 @@ Just("Hello")
             ()
         }    
 ```
-- 使用`@MainActor`自动在主线程更新UI, 只能运行在async/await环境中
+- `@MainActor`會強制切回主線程存取, 若在非@MainActor或非主線程的區段，存取@MainActor的變數，就要用async/await的方式
+```
+class MyViewModel{
+    @MainActor var myParam = false
+    //主線程存取
+    @MainActor func myViewModelFunc1(){
+        myParam = true
+    }
+    //在非主線程，使用async/await存取
+    func myViewModelFunc2() async{
+        let localParam = await myParam
+    }
+}
+
+//外部呼叫，假設在非主線
+func fetchData(vm: MyViewModel) async{
+    //Update param on the main thread
+    await vm.myParam = true
+}
+```
+- `@TaskLocal`用來宣告給Task當區域變數使用，只能宣告在static或global的變數，有幾個特點:
+1. 獨立於同一個Task與子Task裡面，每個Task的TaskLocal變數，都是不同版本的存在
+1. 封裝性, 子Task可以覆寫母Task的TaskLocal變數
+1. 資料不共享，不會有衝突或race conditions的狀況.
+```
+struct MyContext {
+    var userID: String
+}
+
+@TaskLocal //Must static or global
+static var currentContext: MyContext?
+
+func logMessage(_ message: String) {
+    if let context = currentContext {
+        print("\(context.userID):\(message)")
+    } else {
+        print(message)
+    }
+}
+
+Task {
+    currentContext = MyContext(userID: "12345")
+    logMessage("This is a log message") // Prints: 12345: This is a log message
+
+    // Child task inherits the context
+    Task {
+        logMessage("This is another log message") // Prints: 12345: This is another log message
+    }
+}
+
+Task {
+    // Not set currentContent
+    logMessage("This message has no user context") // Prints: This message has no user context
+}
+
+```
 - async/await有一個語法類似Combine的Future, 只回傳一個結果, `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
 ```
 func generateAsyncRandomNumberFromContinuation() async -> Int {
@@ -749,3 +808,16 @@ newGenericfunc("1", 1, "a", [1,2,3])
 
 ```
 - class可掛@Observable，並配合async/await，而不需使用combine
+- URL有一個內建AsyncSequence屬性resourceBytes，以非同步的方式讀取檔案資料
+```
+let bytes = URL(fileURLWithPath: "myFile.txt").resourceBytes
+
+for await character in bytes.characters {
+  ...
+}
+
+for await line in bytes.lines {
+  ...
+}
+
+```
