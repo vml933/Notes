@@ -239,20 +239,32 @@ class Sample{
 let sample = Sample()
 sample.someFunc()
 ```
-
-
-- async/await有一個語法類似Combine的Future, 只回傳一個結果, `withCheckedContinuation(function:_:)` & ` withCheckedThrowingContinuation(function:_:)`
+- `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果
 ```
-func generateAsyncRandomNumberFromContinuation() async -> Int {
-    return await withCheckedContinuation { continuation in
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            let number = Int.random(in: 1...10)
-            continuation.resume(returning: number)
-        }
+func shareLocation() async throws -> String{
+
+  let location = CLLocation(latitude: 37.785834, longitude: -122.406417)
+  
+  let address: String = try await withCheckedThrowingContinuation { continuation in
+    //callback base API
+    AddressEncoder.addressFor(location: location) { address, error in
+      switch (address, error){
+      case (nil, let error?):
+        continuation.resume(throwing: error)
+      case (let address?, nil):
+        continuation.resume(returning: address)
+      case (nil, nil):
+        continuation.resume(throwing: "Address encoding failed")
+      case let (address?, error?):
+        continuation.resume(returning: address)
+        print(error)
+      }
     }
+  }
+  return address
 }
 
-let asyncRandom = await generateAsyncRandomNumberFromContinuation()
+let myLocation = try await shareLocation()
 ```
 
 - 可使用compare，結果是回傳比較的result:
@@ -472,9 +484,9 @@ VALUE: _USER_CUSTOM_SERVICE_NAME._tcp
 - 搭配Breakpoint: 配合Action: Debugger Command，就可在runtime底下使用進階指令，例如印出帶有Timestamp的Log: expressing NSLog("hihi log!")
 
 `Task.sleep()` & `Thread.sleep()` 差別
-1. **Concurrency Model**: Task.sleep 適用Swift並行機制(`async/await`)而且不卡線程; `Thread.sleep`為舊版卡線程的一種方法
+1. **Concurrency Model**: `Task.sleep` 適用Swift並行機制(`async/await`)而且不卡線程; `Thread.sleep`為舊版卡線程的一種方法
 1. **Bocking Behavior**: `Task.sleep`期間允許其他Task在相同的thread上執行; `Thread.sleep`則否
-1. **Cancellation**: `Task.sleep`可以被取消而中斷; `Thread.sleep`則否
+1. **Cancellation**: `Task.sleep`可以被取消而中斷，所以可能丟出`CancellationError`，所以要用`try`; `Thread.sleep`則否
 - 如果要模擬卡線程Block main thread，可用UNIX sleep command
 ```
 sleep(10)
@@ -878,3 +890,175 @@ let timerTask = Task{
 //Clear timer
 timerTask.cancel()
 ```
+- `addingPercentEncoding(withAllowedCharacters:)`用來把文字包成url可接收格式，類似url.encode，常用在URL Query(不知是否因為encode後的每個字元都帶%符號，所以func名稱取名為adding<b>Percent</b>Encoding)
+```
+let query = "Hello, World!"
+if let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+    print("Encoded: \(encodedQuery)") //print Encoded: Hello%2C%20World%21
+} else {
+    print("Failed to encode query")
+}
+
+```
+- `withTaskCancellationHandler(handler: , operation: )`: 全域方法，用來宣告執行Task，附帶取消時，自訂onCanceling方式
+```
+func downloadData() async throws -> Data{
+    for _ in 0...5{
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        print("downloading")
+    }
+    return Data("DummyData".utf8)
+}
+
+func startDownload() async throws -> Data?{
+    return try await withTaskCancellationHandler {
+        return try await downloadData()
+    } onCancel: {
+        print("download was cancel, clear up...")
+    }
+}
+
+var task: Task<Void, Error>?
+
+task = Task{
+    if let data = try? await startDownload(){
+        print("receive data:\(data)")
+    }
+}
+//Cancel task after 2 seconds
+Task.detached {
+    try? await Task.sleep(nanoseconds: 2_000_000_000)
+    print("Canceling...")
+    task?.cancel()
+}
+
+//[sec 1]: print downloading
+//[sec 2]: print downloading
+//[sec 2]: print Canceling...
+//[sec 2]: print download was cancel, clear up...
+```
+- 若要自訂非同步序列(Asynchronous sequence)， 除了要繼承`AsyncSequence`外，還要另外宣告iterator實作`AsyncIteratorProtocol`，稍嫌瑣碎，如果不用針對特定索引或數量元素做處理，可使用`AsyncStream`(closure-based asynchronous). PS: 例如`PhotogrammetrySession.Outputs`就是AsyncSequence
+```
+//使用AsyncSequence & AsyncIteratorProtocol
+struct Typewriter: AsyncSequence{
+    
+    typealias Element = String
+    
+    let phrase: String
+    
+    func makeAsyncIterator() -> TypewriterIterator {
+        return TypewriterIterator(phrase)
+    }
+}
+
+struct TypewriterIterator: AsyncIteratorProtocol{
+    
+    typealias Element = String
+    
+    let phrase: String
+    var index: String.Index
+    
+    init(_ phrase: String) {
+        self.phrase = phrase
+        self.index = phrase.startIndex
+    }
+    
+    mutating func next() async throws -> String? {
+        guard index < phrase.endIndex
+        else{return nil}
+        
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        let result = String(phrase[phrase.startIndex...index])
+        index = phrase.index(after: index)
+        
+        return result
+    }
+}
+//example usage
+for try await item in Typewriter(phrase: "Hello, World!"){
+    print(item)
+}
+
+```
+```
+//使用AsyncStream: unfolding為例: closure base, return value or nil, 適合用在async code中
+var phrase = "Hello, World!"
+var index = phrase.startIndex
+let stream = AsyncStream<String> {
+    guard index < phrase.endIndex else{ return nil }
+    
+    do{
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+    }catch{
+        return nil
+    }
+    
+    let result = String(phrase[phrase.startIndex...index])
+    index = phrase.index(after: index)
+    
+    return result
+}
+
+for try await item in stream{
+    print(item)
+}
+```
+```
+//補充案例: AsyncStream: continuation為例: 適合用在non-async code
+func timerStream(interval: TimeInterval, times: Int) -> AsyncStream<Date> {
+    var count = 0
+
+    // Create an AsyncStream of Date values
+    return AsyncStream(Date.self) { continuation in
+        // Set up a timer that fires every `interval` seconds
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+            count += 1
+            
+            // Yield the current date
+            continuation.yield(Date())
+
+            // Finish the stream after emitting `times` values
+            if count == times {
+                continuation.finish()
+                timer.invalidate()
+            }
+        }
+
+        // Handle cancellation
+        continuation.onTermination = { _ in
+            timer.invalidate()
+        }
+    }
+}
+
+// Example usage
+func runTimerStream() async {
+    for await date in timerStream(interval: 1, times: 5) {
+        print("Received date: \(date)")
+    }
+    print("Timer stream ended")
+}
+
+// Run the async function
+Task {
+    await runTimerStream()
+}
+
+```
+- 如果一個async func裡頭有兩個以上的for await Loop, 記得每個Loop要用Task包起來, 以免第一個之後的for await不會執行
+```
+func observerAppState() async{
+    Task{
+    for await _ in asyncSequence{
+      ...
+    }
+  }
+
+  Task{
+    for await _ in asyncSequence{
+      ...
+    }
+  }
+}
+```
+- AsyncSequence有類似Rx的操作字可用，[https://github.com/apple/swift-async-algorithm](url)
