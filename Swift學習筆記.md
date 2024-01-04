@@ -723,7 +723,7 @@ class Sample{
 let sample = Sample()
 sample.someFunc()
 ```
-- `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果
+- `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果，類似RxSwift的`Single`或Combine的`Future`
 ```
 func shareLocation() async throws -> String{
 
@@ -979,3 +979,47 @@ func observerAppState() async{
 }
 ```
 - AsyncSequence有類似Rx的操作元可用，[swift-async-algorithm](https://github.com/apple/swift-async-algorithm)
+- `Task.checkCancellation()`扔出的`CancellationError()`是繼承Error的`struct`型態，跟常見使用`enum`繼承Error方式不同
+- 宣告一個可供覆寫的等待closure
+```
+class MyClass{
+  var sleep: (Int) async throws -> Void = {
+    try await Task.sleep(for: .seconds($0))
+  }
+
+  func someFunc() async throws {
+    let sleep = self.sleep
+    try await sleep(1)
+    ...
+  }
+}
+
+let anotherInstance = MyClass()
+//從seconds覆寫成nano, 方便快速測試
+anotherInstance.sleep = { try await Task.sleep(for: .nanoseconds($0)) }
+```
+- 在使用`withTaskGroup`的情況下，如果要在for await裡頭動態加入task，區域變數要加入`[]`才會帶給addTask使用，原因未知
+```
+await withTaskGroup(of: String.self) { [unowned self] group in
+  
+  let batchSize = 2
+  for index in 0..<batchSize{
+    group.addTask {
+      await self.worker(number: index)
+    }
+  }
+  
+  var index = batchSize
+  for await result in group{
+    print("Completed:\(result)")
+    if index < total{
+//這裡如果要帶入區域變數index, 要加入[]
+      group.addTask { [index] in
+        await self.worker(number: index)
+      }
+    }
+    index += 1
+  }
+  
+}
+```
