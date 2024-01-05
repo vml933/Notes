@@ -502,3 +502,48 @@ class SomeClass{
 }
 ```
 - A scheduler is not equal to a thread: 調度器不等於線程
+- 兩種宣告environmentObject的方式
+```
+//先宣告後注入
+@main
+struct AppMain: App {
+
+  private var model = ViewModel()
+
+  var body: some Scene {
+    WindowGroup {
+         ChildView()
+            .environmentObject(model)
+    }
+  }
+
+}
+
+struct ChildView: View {
+  @EnvironmentObject var model: ViewModel
+  
+  var body: some View { ...}
+}
+
+```
+```
+//在注入處宣告
+@main
+struct AppMain: App {
+
+  var body: some Scene {
+    WindowGroup {
+         ChildView()
+            .environmentObject(ViewModel())
+    }
+  }
+
+}
+
+struct ChildView: View {
+  @EnvironmentObject var model: ViewModel
+  
+  var body: some View { ...}
+}
+
+```

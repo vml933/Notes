@@ -313,6 +313,31 @@ if let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQue
 
 ```
 - 除了有自訂義CustomStringConvertible可用，也有CustomDebugStringConvertible可用，兩者的用法很類似，只是意圖不同
+- 取得資料夾所有檔案URL的兩種方法
+```
+//FileManager.default.contentsOfDirectory
+func getFiles(folder: URL) throws -> [URL]{
+    guard let URLs = try? FileManager.default.contentsOfDirectory(at: folder,
+                                                                   includingPropertiesForKeys: [],
+                                                                   options: [ .skipsHiddenFiles])
+    else { throw "Could not open the folder"}
+    
+    return URLs
+}
+//FileManager.default.enumerator
+func getFiles(folder: URL) throws -> [URL]{
+    var URLs = [URL]()
+    guard let enumerator = FileManager.default.enumerator(at: folder,
+                                                          includingPropertiesForKeys: [],
+                                                          options: [.skipsHiddenFiles])
+    else { throw "Could not open the folder"}
+    
+    for case let itemURL as URL in enumerator {
+        URLs.append(itemURL)
+    }
+    return URLs
+}
+```
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
@@ -1019,6 +1044,73 @@ await withTaskGroup(of: String.self) { [unowned self] group in
       }
     }
     index += 1
+  }
+  
+}
+```
+- `Actor`類型是一種通過編譯檢查，用來保護內部狀態不受並行程式存取的類型
+- `Actor`允許狀態內部同步存取(sync access), 而編譯器會強制外部存取使用非同步存取(async access)
+- `Actor`使用`serial executor`來呼叫方法&存取屬性
+- `Sendable`是一個protocol, 在並行(concurrency)程式執行中是安全的，大部分的`Value Type`: Bool, Double, Int...都是Sendable的一員，`Actor`也是; class因為是`Reference Type`，不為Sendable的一員.
+- 在actor的類別下，前面加上`nonisolated`的func，會被視為普通的class方法，並移除安全檢查，稍為提升運行速度。像一些靜態方法，例如 ProjectStorage的Convert系列，不會改變本身狀態；如遇到Compilier錯誤提示要加上await該方法，皆可在該方法標記`nonisolated`解除該警告
+```
+actor MyModel{
+ nonisolated func convertSomeFunc() async throw{...}
+}
+```
+- 考慮利用類似的概念:`Enum`呈現工作狀態 管理重建/下載駐列工作
+```
+actor ImageLoader: ObservableObject{
+  
+  enum DownloadState{
+    case inProgress(Task<UIImage, Error>)
+    case completed(UIImage)
+    case failed
+  }
+  
+  private(set) var cache: [String: DownloadState] = [:]
+  
+  func image(_ serverPath: String) async throws -> UIImage{
+    if let cached = cache[serverPath]{
+      switch cached {
+      case .inProgress(let task):
+        return try await task.value
+      case .completed(let uIImage):
+        return uIImage
+      case .failed:
+        throw "Download failed"
+      }
+    }
+    
+    let download: Task<UIImage, Error> = 
+    Task.detached {
+      guard let url = URL(string: "http://localhost:8080".appending(serverPath))
+      else { throw "Could not create the download URL"}
+      print("Download: \(url.absoluteString)")
+      
+      let data = try await URLSession.shared.data(from: url).0
+      return try resize(data, to: CGSize(width: 200, height: 200))
+    }
+    
+    cache[serverPath] = .inProgress(download)
+    
+    do{
+      let result = try await download.value
+      add(result, forKey: serverPath)
+      return result
+    }catch{
+      cache[serverPath] = .failed
+      throw error
+    }
+    
+  }
+
+  func add(_ image: UIImage, forKey key: String){
+    cache[key] = .completed(image)
+  }
+  
+  func clear(){
+    cache.removeAll()
   }
   
 }
