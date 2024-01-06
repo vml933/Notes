@@ -749,6 +749,32 @@ let sample = Sample()
 sample.someFunc()
 ```
 - `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果，類似RxSwift的`Single`或Combine的`Future`
+- 沒想過的運用方式，把`withCheckedContinuation`裡頭的`continuation<T, Error>`傳到另一個class裡面做運用，但記得一定要送出一個結果出來，不然task無法清空
+```
+func shareLocation() async throws {
+  let location: CLLocation = try await withCheckedThrowingContinuation { [weak self] continuation in  
+    self?.delegate = ChatLocationDelegate(manager: manager, continuation: continuation)
+    ...
+  }
+  print(location.description)
+  manager.stopUpdatingLocation()
+  delegate = nil
+}
+
+class ChatLocationDelegate: NSObject, CLLocationManagerDelegate {
+
+  init(manager: CLLocationManager, continuation: CheckedContinuation<CLLocation, Error>) {
+    self.continuation = continuation
+    super.init()
+    manager.delegate = self    
+  }
+  ...
+  //避免沒有關閉task，class清除前continuation手動送出一個結果.
+  deinit {
+    continuation?.resume(throwing: CancellationError())
+  }
+}
+```
 ```
 func shareLocation() async throws -> String{
 
