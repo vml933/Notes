@@ -1141,3 +1141,34 @@ actor ImageLoader: ObservableObject{
   
 }
 ```
+- 使用`globalActor`可以確保目標class永遠執行在`actor`的`serial executor`上，可以避免concurrency問題以及actor間相互切換的性能浪費
+```
+@globalActor actor ImageDatabase{
+  
+  static let shared = ImageDatabase()
+  
+  private let storage = DiskStorage()
+}
+
+@ImageDatabase class DiskStorage {
+//guarantee the code in DiskStorage always runs on ImageDatabase’s serial executor.
+}
+```
+- 如果要存取actor的陣列，最好複製一份出來使用，避免因concurrency造成各種不可預期的情況發生
+```
+actor ImageLoader: ObservableObject {
+  private(set) var cache: [String: DownloadState] = [:]
+  ...
+}
+
+@globalActor actor ImageDatabase{
+...
+ func image(_ key: String) async throws -> UIImage{
+   //make a copy for safe
+   let keys = await imageLoader.cache.keys
+   if keys.contains(key){
+     ....
+   } 
+ }
+}
+```
