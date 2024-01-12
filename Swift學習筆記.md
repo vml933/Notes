@@ -749,7 +749,7 @@ let sample = Sample()
 sample.someFunc()
 ```
 - `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果，類似RxSwift的`Single`或Combine的`Future`
-- 沒想過的運用方式，把`withCheckedContinuation`裡頭的`continuation<T, Error>`傳到另一個class裡面做運用，但記得一定要送出一個結果出來，不然task無法清空
+- 實作運用: 把`withCheckedContinuation`裡頭的`continuation<T, Error>`傳到另一個class裡面做運用，但記得一定要送出一個結果出來，不然task無法清空
 ```
 func shareLocation() async throws {
   let location: CLLocation = try await withCheckedThrowingContinuation { [weak self] continuation in  
@@ -972,7 +972,7 @@ for try await item in stream{
 }
 ```
 ```
-//補充案例: AsyncStream(_ build:)為例: 適合用在non-async code
+//補充案例-1: AsyncStream(_ build:)為例: 適合用在non-async code
 func timerStream(interval: TimeInterval, times: Int) -> AsyncStream<Date> {
     var count = 0
 
@@ -1012,6 +1012,55 @@ Task {
     await runTimerStream()
 }
 
+```
+```
+//補充案例-2: AsyncStream(_ build:)為例: 與withCheckedContinuation相同，Continuation常被取出來應用
+actor ImageLoader: ObservableObject {
+  //for UI Listen
+  @MainActor private(set) var accessStream: AsyncStream<Int>?
+  //hold continuation for emit element
+  private var accessStreamContinuation: AsyncStream<Int>.Continuation?
+  private var accessCounter = 0{
+    didSet{
+      inMemoryAccessContinuation?.yield(inMemoryAccessCounter)
+    }
+  }
+
+  func setUp() async{
+    let accessStream = AsyncStream<Int> { continuation in
+      accessStreamContinuation = continuation
+    }
+    await MainActor.run {
+      self.accessStream = accessStream
+    }
+  }
+
+  func add() {
+    accessCounter += 1
+  }
+
+  deinit{
+    accessStreamContinuation?.finish()
+  }	
+}
+
+struct SwiftUIView: View {
+
+	@State var inMemoryAccessCount = 0
+
+	var body: some View {
+		Text("\(inMemoryAccessCount) in memory")
+		    .task {
+		      guard let accessStream = imageLoader.accessStream
+		      else{return}
+		      
+		      for await count in accessStream{
+		        inMemoryAccessCount = count
+		      }
+		    }
+	}
+	
+}
 ```
 - 如果一個async func裡頭有兩個以上的for await Loop, 記得每個Loop要用Task包起來, 以免第一個之後的for await不會執行
 ```
