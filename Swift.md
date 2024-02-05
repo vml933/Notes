@@ -1223,16 +1223,16 @@ actor ImageLoader: ObservableObject {
 }
 ```
 ### Camera相關(後鏡頭為例)
-- 取得手機支援的Camera，這裡的Camera都是虛擬Camera概念(除了builtInWideAngleCamera，可由device.isVirtualDevicet查詢)，各個Camera都是由不同的實體Camera組成，詳細組合詳下表
+- 取得手機支援的Camera，這裡的Camera都是虛擬Camera概念(除了builtInWideAngleCamera，可由device.isVirtualDevicet查詢)，各個Camera都是由不同的實體Camera組成，詳情洽下方各設備資訊
 ```//順序依Camera新->舊排序
 let deviceTypes: [AVCaptureDevice.DeviceType] = [
-    //Triple Camera: a system that switches automatically among the three lens, etc Pro
+    //builtInTripleCamera: a system that switches automatically among the three lens, etc Pro
     .builtInTripleCamera,
-    //Dual Wide Camera: a system that switches between 0.5x and 1x as appropriate, etc: Pro, i11
+    //builtInDualWideCamera: a system that switches between 0.5x and 1x as appropriate, etc: Pro, i11
     .builtInDualWideCamera, 
-    //Dual Camera: a system that switches between 1.0x and telephoto lens (2x, 2.5x, or 3x depending on the phone model), etc: x, Pro
+    //builtInDualCamera: a system that switches between 1.0x and telephoto lens (2x, 2.5x, or 3x depending on the phone model), etc: x, Pro
     .builtInDualCamera, 
-    //Wide Camera: 1x single-lens camera, etc: i6, i7, x, i11, 14, 14pro
+    //builtInWideAngleCamera: 1x single-lens camera, etc: i6, i7, x, i11, 14, 14pro
     .builtInWideAngleCamera,
 ]
 //Supported Device Types
@@ -1240,7 +1240,18 @@ discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, me
 //取得第一個(最佳)Camera，或依需求自行選擇組合
 videoDevice = discoverySession.devices.first
 ```
-**iPhone14 Pro:** 
+
+- **Overview** 
+```
+                Triple Camera   Wide Dual Camera    Dual Camera     Wide Camera
+iPhone 14 Pro   Yes             Yes                 Yes             Yes
+iPhone 13                       Yes                                 Yes
+iPhone 11                       Yes                                 Yes
+iPhone X                                            Yes             Yes
+iPhone 6s                                                           Yes
+
+```
+- **iPhone14 Pro:** 
 ```
 Supported Types: 
 =======================
@@ -1276,7 +1287,7 @@ virtualZoomFactors: []
 isVirtualDevice: false
 ```
 
-**iPhone11:**
+- **iPhone11:**
 ```
 deviceTypes: 
 =======================
@@ -1297,7 +1308,7 @@ virtualZoomFactors: []
 isVirtualDevice: false
 ```
 
-**iPhoneX:**
+- **iPhoneX:**
 ```
 deviceTypes: 
 =======================
