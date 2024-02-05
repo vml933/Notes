@@ -338,6 +338,7 @@ func getFiles(folder: URL) throws -> [URL]{
     return URLs
 }
 ```
+- 如果從Bundle.main.url讀取png檔，轉存到Document時，png檔容量會變大，Unity無法使用
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
@@ -1220,4 +1221,126 @@ actor ImageLoader: ObservableObject {
    } 
  }
 }
+```
+### Camera相關(後鏡頭為例)
+- 取得手機支援的Camera，這裡的Camera都是虛擬Camera概念(除了builtInWideAngleCamera，可由device.isVirtualDevicet查詢)，各個Camera都是由不同的實體Camera組成，詳細組合詳下表
+```//順序依Camera新->舊排序
+let deviceTypes: [AVCaptureDevice.DeviceType] = [
+    //Triple Camera: a system that switches automatically among the three lens, etc Pro
+    .builtInTripleCamera,
+    //Dual Wide Camera: a system that switches between 0.5x and 1x as appropriate, etc: Pro, i11
+    .builtInDualWideCamera, 
+    //Dual Camera: a system that switches between 1.0x and telephoto lens (2x, 2.5x, or 3x depending on the phone model), etc: x, Pro
+    .builtInDualCamera, 
+    //Wide Camera: 1x single-lens camera, etc: i6, i7, x, i11, 14, 14pro
+    .builtInWideAngleCamera,
+]
+//Supported Device Types
+discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, mediaType: .video, position: .back)
+//取得第一個(最佳)Camera，或依需求自行選擇組合
+videoDevice = discoverySession.devices.first
+```
+**iPhone14 Pro:** 
+```
+Supported Types: 
+=======================
+[Back Triple Camera]
+[Back Dual Wide Camera]
+[Back Dual Camera]
+[Back Camera]
+=======================
+
+builtInTripleCamera
+=======================
+//實體鏡頭組合
+constituentDevices: [[Back Ultra Wide Camera], [Back Camera], [Back Telephoto Camera]]
+//觸發切換鏡頭的Zoom門崁，第一個鏡頭門崁不會列入表內，故2: [Back Camera], 6: [Back Telephoto Camera]
+virtualZoomFactors: [2, 6]
+
+builtInDualWideCamera
+=======================
+constituentDevices: [[Back Ultra Wide Camera], [Back Camera]]
+virtualZoomFactors: [2]
+isVirtualDevice: true
+
+Dual Camera
+=======================
+constituentDevices:  [[Back Camera], [Back Telephoto Camera]]
+virtualZoomFactors: [3]
+isVirtualDevice: true
+
+builtInWideAngleCamera
+=======================
+constituentDevices: []
+virtualZoomFactors: []
+isVirtualDevice: false
+```
+
+**iPhone11:**
+```
+deviceTypes: 
+=======================
+[Back Dual Wide Camera]
+[Back Camera]
+=======================
+
+builtInDualWideCamera
+=======================
+constituentDevices: [[Back Ultra Wide Camera], [Back Camera]]
+virtualZoomFactors: [2]
+isVirtualDevice: true
+
+builtInWideAngleCamera
+=======================
+constituentDevices: []
+virtualZoomFactors: []
+isVirtualDevice: false
+```
+
+**iPhoneX:**
+```
+deviceTypes: 
+=======================
+[Back Dual Camera]
+[Back Camera]
+=======================
+
+builtInDualWideCamera
+=======================
+constituentDevices: [[Back Camera], [Back Telephoto Camera]]
+virtualZoomFactors: [2]
+isVirtualDevice: true
+
+builtInWideAngleCamera
+=======================
+constituentDevices: []
+virtualZoomFactors: []
+isVirtualDevice: false
+```
+- 首次啟動鏡頭，videoZoomFactor都為1x, 若是新型手機，取得的實體Camera可能為Ultra Wide，畫面會變魚眼，故需要依當下已選譯虛擬Camera，找出觸發WideCamera的zoomFactor並指定，畫面才會正常
+```
+//一定要等到加到Input，才會套用到新的設定
+session.addInput(videoDeviceInput)
+try? device!.lockForConfiguration()
+//virtualZoomFactors的數量若大於0，代表有超過1個以上的實體camera, isVirtualDevice = true; 
+//virtualZoomFactors若為空，代表只有1個實體camera, isVirtualDevice = false
+
+//virtualZoomFactors的數量 = constituentDevices數量-1，因為第一個實體Camera的zoomFactor不會列在virtualZoomFactors裡面
+//每一種機型的實體Camera陣列(constituentDevices)順序不相同，要找出目標實體Camera(WideCamera)的index並依該index取得觸發該Camera的值(zoomFactor)
+
+guard let virtualZoomFactors = device?.virtualDeviceSwitchOverVideoZoomFactors,
+      virtualZoomFactors.count > 0,
+      //找出wideCamera的index
+      let wideCameraIndex = device?.constituentDevices.firstIndex(where: {
+          $0.deviceType == .builtInWideAngleCamera
+      }),
+      wideCameraIndex != 0
+else{return}
+
+//因為第一個實體Camera的觸發zoomFactor不會列在virtualZoomFactors裡面，所以wideCamera的camera index要減1
+let triggerWideCameraFactor = device!.virtualDeviceSwitchOverVideoZoomFactors[wideCameraIndex - 1]
+//設定zoomFactor => 觸發實體鏡頭為WideCamera => 畫面正常
+device!.videoZoomFactor = CGFloat(truncating: triggerWideCameraFactor)
+
+device!.unlockForConfiguration()
 ```
