@@ -339,6 +339,22 @@ func getFiles(folder: URL) throws -> [URL]{
 }
 ```
 - 如果從Bundle.main.url讀取png檔，轉存到Document時，png檔容量會變大，Unity無法使用
+- 等待一個frame
+```
+//wait until 1 frame
+DispatchQueue.main.async {
+	//TODO
+}
+
+//RxSwift
+self.isResetEnabled
+    //wait until 1 frame
+    .delay(.seconds(0), scheduler: MainScheduler.instance)
+    .bind(to: btnReset.rx.isEnabled)
+    .disposed(by: disposeBag)
+
+
+```
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
