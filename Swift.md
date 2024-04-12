@@ -355,6 +355,24 @@ self.isResetEnabled
 
 
 ```
+- 取得SafeArea大小
+```
+var safeAreaSize: CGSize{
+    let safeAreaInsects = self.view.safeAreaInsets
+    let width = self.view.bounds.width - safeAreaInsects.left - safeAreaInsects.right
+    let height = self.view.bounds.height - safeAreaInsects.top - safeAreaInsects.bottom
+    return CGSize(width: width, height: height)
+}
+```
+- 算出ChildView所需的大小
+```
+parentView.layoutIfNeeded()
+let contentRect: CGRect = self.parentView.subviews
+    .reduce(into: .zero) { rect, view in
+        rect = rect.union(view.frame)
+    }
+parentViewHeight = contentRect.height
+```
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
