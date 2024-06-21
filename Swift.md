@@ -373,6 +373,41 @@ let contentRect: CGRect = self.parentView.subviews
     }
 parentViewHeight = contentRect.height
 ```
+- 快速相加陣列元素
+```
+(1...n).reduce(0, +)
+```
+- 操作大量陣列需求，追求效能可使用[官方Swift Collections](https://github.com/apple/swift-collections): `Deque`, `OrderedDictionary`, `OrderedSet`..注意各有其缺點
+
+- 實作`ExpressibleByArrayLiteral`，可以讓自訂類別像陣列一樣宣告
+```
+public struct Stack<T>{
+    
+    private var storage: [T] = []
+	...
+}
+
+extension Stack: ExpressibleByArrayLiteral{
+    
+    public init(arrayLiteral elements: T...) {
+        self.storage = elements
+    }
+}
+
+let myStack: Stack = [1, 2, 3, 4]
+
+```
+- func 回傳值後後想再操作的小技巧，使用`defer`
+```
+public func pop() -> value? {
+  defer{
+   TODO...	
+  }
+
+ return head?.value
+}
+```
+
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
