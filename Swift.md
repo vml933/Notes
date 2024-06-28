@@ -1,5 +1,24 @@
 ## Swift學習筆記
 ### General
+- `lazy var`使用時機
+```
+class SomeClass{
+
+    var apiService: APIService!
+    var projectStorage: RoomScanProjectsStorage!
+    var dataStorage: DataStorage!
+    var cacheService: CacheService!
+    //因為宣告為lazy, 所以可以在宣告處，直接使用其他變數
+    lazy var vm: Scan_vm? = Scan_vm(dependency: (apiService: apiService,
+                                                 projectsStorage: projectStorage,
+                                                 dataStorage: dataStorage,
+                                                 cacheService: cacheService))
+    func init(){
+      //...
+    }
+	
+}
+```
 - 當Class實作Hashable時，必當實作Equatable, 因為實作Equatable，因為不為valueType, 所以要用 === 判斷
 - Class instance自動實作Identifiable
 - 可以在Init裡面New實體
@@ -407,7 +426,17 @@ public func pop() -> value? {
  return head?.value
 }
 ```
-
+- `COW`: copy-on-write, swift collection有效管理記憶體的機制
+```
+let array1 = [1, 2]
+var array2 = array1
+//Before append, array1 & array2指向同一個記憶體
+array2.append(3)
+//append被呼叫後，array2複製array1的值
+//array1: [1, 2]
+//array2: [1, 2, 3]
+```
+- `isKnownUniquelyReferenced`: 查詢instance是否只有一個reference指向它
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
