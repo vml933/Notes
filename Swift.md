@@ -1,5 +1,50 @@
 ## Swift學習筆記
 ### General
+- `protocol`有趣用法
+```
+//宣告protocol
+protocol TraversableBinaryNode{
+    
+    associatedtype Element
+    var value: Element { get }
+    var leftChild: Self? {get}
+    var rightChild: Self? {get}
+    
+    func traverseInOrder(visit: (Element) -> Void )
+    func traversePreOrder(visit: (Element) -> Void )
+    func traversePostOrder(visit: (Element) -> Void )
+}
+
+//以extension方式提供實作
+extension TraversableBinaryNode {
+    
+    func traverseInOrder(visit: (Element) -> Void){
+        self.leftChild?.traverseInOrder(visit: visit)
+        visit(value)
+        self.rightChild?.traverseInOrder(visit: visit)
+    }
+    
+    func traversePreOrder(visit: (Element) -> Void ){
+        visit(value)
+        self.leftChild?.traverseInOrder(visit: visit)
+        self.rightChild?.traverseInOrder(visit: visit)
+    }
+    
+    func traversePostOrder(visit: (Element) -> Void ){
+        self.leftChild?.traverseInOrder(visit: visit)
+        self.rightChild?.traverseInOrder(visit: visit)
+        visit(value)
+    }
+    
+}
+
+//類別以extension宣告實作protocol(裡面放空的)
+extension AVLNode: TraversableBinaryNode{
+}
+
+//即可馬上使用
+tree.root?.traverseInOrder { print($0) }
+```
 - `lazy var`使用時機
 ```
 class SomeClass{
@@ -19,6 +64,7 @@ class SomeClass{
 	
 }
 ```
+- 型態必需繼承`Hashable`才可以放到`Set`或Dictionary的Key, 如String, Int, Bool...
 - 當Class實作Hashable時，必當實作Equatable, 因為實作Equatable，因為不為valueType, 所以要用 === 判斷
 - Class instance自動實作Identifiable
 - 可以在Init裡面New實體
