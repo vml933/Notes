@@ -1,5 +1,16 @@
 ## Swift學習筆記
 ### General
+- 倒數的Loop
+```
+let array = [1, 2, 3, 4]
+for i in (0..<array.count).reversed(){
+   print(i)
+}
+//or
+for i in stride(from: array.count - 1, through: 0, by: -1){
+    print(array[i])
+}
+```
 - `protocol`有趣用法
 ```
 //宣告protocol
@@ -7,6 +18,7 @@ protocol TraversableBinaryNode{
     
     associatedtype Element
     var value: Element { get }
+    //備註: 如果要在protocol裡宣告屬性為本身的型態，用var foo: Self
     var leftChild: Self? {get}
     var rightChild: Self? {get}
     
@@ -139,6 +151,12 @@ default:
 - 在DEBUG模式下，Variables View，不只可以看到變數，也選擇UIController的View，點選眼睛Icon，也看到App-UI畫面.
 - 如果發生Crash時，只有跳到AppDelegate，無法正確的指出錯誤是哪一行，此時可加入Exception Breakpoint，IDE就會直接跳到問題行
 - Assertions: EX: `assertionFailure`, 或 `assert(condition:)`, 手動觸發Crash，用來確保商業流程合乎期待，如果撰寫framework開放給外部使用者就會需要用到。**注意: Assertions在Release版本並不會發生作用**; 如果在Release發生作用，請用`preconditionFailure(_:file:line:)`或是`fatalError(_:file:line:)`
+- Difference from `assert` and `fatalError`
+
+1. `assert`: Only active in debug builds. It stops the program if the condition fails, but does nothing in release builds.
+1. `precondition`: Active in both debug and release builds. It stops the program if the condition fails.
+1. `fatalError`: Stops the program immediately and is used when you reach code that should never be executed.
+
 - `NSLog` & `print` 差別:NSLog會印出詳細時間，例如:
 ```
 2022-12-30 15:56:35.233109+0800 GiftLister[9591:257040] hihi log!

@@ -1,4 +1,12 @@
 ## RxSwift相關
+- 若要Delay 1 Frame，可使用`.delay(.seconds(0))`
+```
+self.isResetEnabled
+ //Delay 1 frame，按鈕放開後顏色才會正常變為disable
+ .delay(.seconds(0), scheduler: MainScheduler.instance)
+ .bind(to: btnReset.rx.isEnabled)
+ .disposed(by: disposeBag)
+```
 - 新版Rx有這個回收方法
 ```
 _ =
