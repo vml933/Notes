@@ -1,5 +1,15 @@
 ## Swift學習筆記
 ### General
+- `Collection` & `BidirectionalCollection`差別
+1. Collection僅支援forward traversal: index(after:) 
+1. BidirectionalCollection支援雙向traversal: index(after:) & index(before:) 
+1. BidirectionalCollection為繼承Collection
+
+- collection中的`index(before:)`與`formIndex(before:)`差別
+1. 兩個都屬於BidirectionalCollectionc中的方法
+1. index(before:): 為non-mutating方法，回傳一個新的index
+1. formIndex(before:): 為mutating方法，修改帶入的index
+
 - 倒數的Loop
 ```
 let array = [1, 2, 3, 4]
