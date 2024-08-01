@@ -10,6 +10,10 @@
 1. index(before:): 為non-mutating方法，回傳一個新的index
 1. formIndex(before:): 為mutating方法，修改帶入的index
 
+- `RandomAccessCollection` & `(BidirectionalCollection)Collection` 差別
+1. RandomAccessCollection可以在O(1)時間內移動任意距離的索引
+1. RandomAccessCollection提升索引移動或距離測量的操作
+1. RandomAccessCollection在讀取`count`所花的時間是O(1), 而不是iterate
 - 倒數的Loop
 ```
 let array = [1, 2, 3, 4]
@@ -20,6 +24,17 @@ for i in (0..<array.count).reversed(){
 for i in stride(from: array.count - 1, through: 0, by: -1){
     print(array[i])
 }
+//or
+for i in list.indces.reversed(){
+   print(i)
+}
+
+```
+- func的類型限制要放在return之後
+```
+func task<T>(in collection: T) -> Int? where T: RandomAccessCollection{
+    return nil
+}
 ```
 - `protocol`有趣用法
 ```
@@ -28,7 +43,8 @@ protocol TraversableBinaryNode{
     
     associatedtype Element
     var value: Element { get }
-    //備註: 如果要在protocol裡宣告屬性為本身的型態，用var foo: Self
+    //備註: 如果要在protocol裡宣告屬性為本身的型態，用var foo: Self, 
+    //在這個例子中，用leftChild: TraversableBinaryNode為無效用法
     var leftChild: Self? {get}
     var rightChild: Self? {get}
     
@@ -511,6 +527,56 @@ array2.append(3)
 //array2: [1, 2, 3]
 ```
 - `isKnownUniquelyReferenced`: 查詢instance是否只有一個reference指向它
+### 陣列相關
+- 宣告Array時Swift會給一個預設空間，若添加的項目超過容量，會自動配給空間，為原來的**兩倍**
+- 避免Array大量產生重新分配空間的問題，可使用`reserveCapacity`
+```
+let size = 1024
+var values: [Int] = []
+
+values.reserveCapacity(size)
+
+for i in 0 ..< size {
+  values.append(i)
+}
+```
+- `Sequence`, `AnySequence`因為沒有足夠的方法可以供Loop用，需要使用老式的iterator達到Loop用途
+```
+let iterator = sequence.makeIterator()
+while let value = iterator.next(){
+    print(value)
+}
+
+```
+- 當我們使用For In時，其實背後是取得array的iterator 
+```
+let animals = ["Antelope", "Butterfly", "Camel", "Dolphin"]
+for animal in animals { 
+	print(animal)
+}
+```
+背後:
+```
+var animalIterator = animals.makeIterator()
+while let animal = animalIterator.next() {
+	print(animal)
+}
+```
+- Traverse時也可以透過存取`collection`的`indices`達成
+```
+let array = ["a", "b", "c"]
+for index in array.indices{
+    print(array[index]) //a, b, c
+}
+
+```
+- 要撰寫Array的Extension並限制Element型態時，因為不是用於限制protocol，故使用`==`，而非`:`
+```
+extension Array where Element == Int {
+...
+}
+```
+
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
@@ -732,20 +798,6 @@ let logger = Logger(subsystem: "com.example.Wallet", category: "networking")
 - 如果要將Task儲存在變數內，因為成功不會回傳值，有可能噴錯，故類型為
 ```
 @State var downloadTask: Task<Void, Error>?
-```
-- 當我們使用For In時，其實背後是取得array的iterator 
-```
-let animals = ["Antelope", "Butterfly", "Camel", "Dolphin"]
-for animal in animals { 
-	print(animal)
-}
-```
-背後:
-```
-var animalIterator = animals.makeIterator()
-while let animal = animalIterator.next() {
-	print(animal)
-}
 ```
 - AsyncSequence只定義取得Element的方式，本身並不產生Element，是由裡頭的Iterator產生Element
 ```
