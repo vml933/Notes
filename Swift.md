@@ -3,7 +3,7 @@
 - `Collection` & `BidirectionalCollection`差別
 1. Collection僅支援forward traversal: index(after:) 
 1. BidirectionalCollection支援雙向traversal: index(after:) & index(before:) 
-1. BidirectionalCollection為繼承Collection
+1. `BidirectionalCollection`繼承`Collection`, `Collection`繼承`Sequence`
 
 - collection中的`index(before:)`與`formIndex(before:)`差別
 1. 兩個都屬於BidirectionalCollectionc中的方法
@@ -14,6 +14,8 @@
 1. RandomAccessCollection可以在O(1)時間內移動任意距離的索引
 1. RandomAccessCollection提升索引移動或距離測量的操作
 1. RandomAccessCollection在讀取`count`所花的時間是O(1), 而不是iterate
+1. 常用的`Array`屬於RandomAccessCollectio的一種
+- 冷門小知識: 在Swift standard library中，對於數量小於(不含)20的陣列，是使用`Insertion sort`
 - 倒數的Loop
 ```
 let array = [1, 2, 3, 4]
@@ -36,7 +38,7 @@ func task<T>(in collection: T) -> Int? where T: RandomAccessCollection{
     return nil
 }
 ```
-- `protocol`有趣用法
+- `protocol`實用用法: 適用於不同的class，都有相同的方法，但class間又無法抽出base時，可使用
 ```
 //宣告protocol
 protocol TraversableBinaryNode{
@@ -126,7 +128,7 @@ switch case let .upc(let numberSystem, let product, let check):
 //也可寫成
 case let .upc(numberSystem, product, check):
 ```
-- 當callback回傳的tuple是兩個option型態時，可以這樣判斷
+- 當switch兩個option value時，可以以下寫法
 ```
 SomeAPI.someFunc(){ value, error in
   switch (value, error){
@@ -140,6 +142,16 @@ SomeAPI.someFunc(){ value, error in
     ...
   }
 }
+//或
+switch(lhs, rhs){
+   case let (left?, right?):
+...
+   case (nil, nil):
+...
+   default:
+...
+}
+
 ```
 - 可使用compare，結果是回傳比較的result:
 ```
@@ -208,7 +220,7 @@ find "${SRCROOT}" \( -name "*.swift" \) -print0 | xargs -0 egrep --with-filename
 Calendar.current.monthSymbols[month - 1]
 ```
 - 如果要Loop所有的enum, 必須實作`CaseIterable`, 就可以用SomeEnum.allCases loop所有類型
-- 如果自訂的Class想要使用官方的Delegate，必須要繼承`NSObject`
+- 如果自訂的Class想要使用官方的Delegate，必須要繼承`NSObject`，像是自訂的VM或Service
 ```
 private let logger = Logger(subsystem: "com.apple.sample.photogrammetry", category: "HelloPhotogrammetry")
 logger.log("Successfully...")
@@ -576,7 +588,16 @@ extension Array where Element == Int {
 ...
 }
 ```
-
+- Array裡的`removeLast()` & `popLast()` 差別
+1. 回傳值: popLast()回傳為`optional`值，可以為`nil`, removeLast()一定會有值
+1. 承上點，若是空陣列，呼叫popLast()正常使用，但呼叫removeLast()會Crash
+- 如果要宣告多維陣列，可用init的方式宣告預設值
+```
+//正確
+var buckets: [[Element]] = .init(repeating: [], count: 10)
+//錯誤
+//var buckets: [[Element]] = Array(repeating: [Int], count: 10)
+```
 ### Error相關
 - 如果error沒有實作equaltable, 要檢查error type, 可用 case MyError.someError = error
 - 如果要用switch case判斷error類型，但error後面會附加一些資訊，無法使用傳統方式辨別，可用case _ where error.hasPrefix("can not find user_id"): 判斷
