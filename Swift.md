@@ -15,7 +15,9 @@
 1. RandomAccessCollection提升索引移動或距離測量的操作
 1. RandomAccessCollection在讀取`count`所花的時間是O(1), 而不是iterate
 1. 常用的`Array`屬於RandomAccessCollectio的一種
+- 冷門小知識: 在Swift standard library中，`sort`function是使用`introsort`: 結合`Insertion sort` & `heap sort`的作法
 - 冷門小知識: 在Swift standard library中，對於數量小於(不含)20的陣列，是使用`Insertion sort`
+- 冷門小知識: Swift中, 使用`Array.contains(_:)`是`O(n)`操作
 - 倒數的Loop
 ```
 let array = [1, 2, 3, 4]
@@ -722,8 +724,8 @@ let dateFormatter: DateFormatter = {
 ```
 ### Grand Central Dispatch (GCD)
 DispatchQueue是Swift的Grand Central Dispatch (GCD)
-- `DispatchQueue.global(qos:)`: 內建的並行Queue(Concurrent): 適合用來避免同时派送多個请求，以免對接收端造成太大壓力
-- `DispatchQueue(label:qos:)`: 自訂的序列Queue(Serial): 適合用來觀察多個長時間運行的工作，將所有結果結合在一起
+- `DispatchQueue.global(qos:)`: 內建的並行Queue(Concurrent): 適合用來避免同时派送多個请求，以免對接收端造成太大壓力，適合不用照順序，長時間運行: 下載，影像處理...等工作.
+- `DispatchQueue(label:qos:)`: 自訂Queue，可為並行(Concurrent)或序列(Serial)(預設): 適合用來處理多個照順序運行的工作. 
 - `DispatchQueue.main`: 與更新UI相關，預設的QoS為`.userInteractive`
 ```
 DispatchQueue.global(qos: .background).async {
@@ -889,7 +891,7 @@ for await number in Counter(howHigh: 10) {
     }
   }
 ```  
-- async let 可以確保非同步時一定有值，概念類似第三方套件的promise，只能用await取其中的值，PS: files & status是同時發出要求，status並不會等files
+- async let 可以確保非同步時一定有值，概念類似第三方套件的promise，只能用await取其中的值，PS: files & status是同時發出要求，status並不會等files; 使用async let時，後面的try不用接await
 ```  
 //status() & availableFiles()同時執行，並行執行
 do {

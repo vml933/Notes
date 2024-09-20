@@ -250,8 +250,9 @@ var headerView: some View {
 }
 ```
 - Property或func前面也可以加`@MainActor`
-- Task是一種top-level asynchronous task，表示可以從同步工作創建任一非同步工作，
-- 用Task把非同步包起來，無法完全確保request回來時是在主線程，只能確保出發時是在主線程
+- Task是一種top-level asynchronous task，表示可以從同步工作創建任一非同步工作，而且都為頂層Task
+- 若是槽狀建立多重Task，運行時task間並不會有子母關係，都為頂層Task
+- 若在UI層，透過Task執行async，只能確保出發時是在主線程，回來時可能就離開主線程了，因為Task裡頭不同的await，可能跑在不同的線程
 ```
 Remember, you learned that every use of await is a suspension point, and your code might resume on a different thread. The first piece of your code runs on the main thread because the task initially runs on the main actor. But after the first await, your code could be running on any thread.
 You need to explicitly route any UI-driving code back to the main actor.
