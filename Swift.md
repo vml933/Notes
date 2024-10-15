@@ -224,7 +224,7 @@ Calendar.current.monthSymbols[month - 1]
 - 如果要Loop所有的enum, 必須實作`CaseIterable`, 就可以用SomeEnum.allCases loop所有類型
 - 如果自訂的Class想要使用官方的Delegate，必須要繼承`NSObject`，像是自訂的VM或Service
 ```
-private let logger = Logger(subsystem: "com.apple.sample.photogrammetry", category: "HelloPhotogrammetry")
+private let logger = Logger(subsystem: "com.apple.sample.photogrammetry", category: #fileID)
 logger.log("Successfully...")
 logger.error("Program terminated...")
 ```
@@ -808,7 +808,7 @@ Task{
 
 
 ```
-let logger = Logger(subsystem: "com.example.Wallet", category: "networking")
+let logger = Logger(subsystem: "com.example.Wallet", category: #fileID)
 ```
 [Reference](https://medium.com/@MariamBabutsa/why-you-should-use-logger-over-print-for-logging-you-apps-data-6f4085500a76)
 - 使用`Logger`類別，已打包的程式可在"系統監視程式"可見; 另外好處是，在loggerd印出自訂的值，為了安全，在已打包的版本，自訂的值會印出`<private>`
