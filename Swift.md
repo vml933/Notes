@@ -725,7 +725,7 @@ let dateFormatter: DateFormatter = {
 ### Grand Central Dispatch (GCD)
 DispatchQueue是Swift的Grand Central Dispatch (GCD)
 - `DispatchQueue.global(qos:)`: 內建的並行Queue(Concurrent): 適合用來避免同时派送多個请求，以免對接收端造成太大壓力，適合不用照順序，長時間運行: 下載，影像處理...等工作.
-- `DispatchQueue(label:qos:)`: 自訂Queue，可為並行(Concurrent)或序列(Serial)(預設): 適合用來處理多個照順序運行的工作. 
+- `DispatchQueue(label:qos:)`: 自訂Queue，可為序列(Serial)(預設)或並行(Concurrent): 適合用來處理多個照順序運行的工作. 
 - `DispatchQueue.main`: 與更新UI相關，預設的QoS為`.userInteractive`
 ```
 DispatchQueue.global(qos: .background).async {
@@ -1469,6 +1469,49 @@ actor ImageLoader: ObservableObject {
  }
 }
 ```
+### 新版KVO (目前都使用RxSwift、Combine或Delegate、Notification Center代替)
+- 被觀察的Class要繼承`NSObject`，屬性要標示`@objc`：exposes the property to Objective-C、`dynamic`: allows KVO to dynamically track changes at runtime.
+```
+class Child: NSObject{
+    
+    let name: String
+    // KVO-enabled properties must be @objc dynamic
+    @objc dynamic var age: Int
+    
+    init(name: String, age: Int) {
+        self.name = name
+        self.age = age
+    }
+    
+    func birthDay(){
+        self.age += 1
+    }
+}
+
+let mia = Child(name: "Mia", age: 1)
+
+let observation = mia.observe(\.age, options: [.initial, .old, .new, .prior]) { child, change in
+    print("child init:\(child.age)")
+    print("child old:\(change.oldValue)")
+    print("child new:\(change.newValue)")
+// 發生變化前，KVO會觸發一次，isPrior為true; 發生變化後，KVO觸發一次，isPrior為false
+    print("is prior:\(change.isPrior)") 
+}
+
+print("birthday")
+mia.birthDay()
+print("birthday")
+mia.birthDay()
+//不使用時要記得清除
+deinit{
+ observation.invalidate()
+}
+
+
+mia.birthDay()
+
+```
+
 ### Camera相關(後鏡頭為例)
 - 取得手機支援的Camera，這裡的Camera都是虛擬Camera概念(除了builtInWideAngleCamera，可由device.isVirtualDevicet查詢)，各個Camera都是由不同的實體Camera組成，詳情洽下方各設備資訊
 ```//順序依Camera新->舊排序
