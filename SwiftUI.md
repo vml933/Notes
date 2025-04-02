@@ -1,5 +1,10 @@
 ## SwiftUI學習筆記
 
+- iOS 17+有 Observation framework：`@Observable`可以使用，故`@StateObject`, `@ObservedObject`, `@Published`, `@ObservableObject`, `@EnvironmentObject` 已經棄用, 並且不建議使用@State做為綁定ViewModel；適合用於 local view控制。
+
+- [A Deep Dive Into Observation: A New Way to Boost SwiftUI Performance](https://fatbobman.com/en/posts/mastering-observation/)
+- [Migrating from the Observable Object protocol to the Observable](https://developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro)
+
 - Owning the reference, not the data
 
 - List, ForEach
