@@ -26,6 +26,75 @@
 - 若將一個struct(內含許多property)，宣告成State，可正常運作，但沒效率，因為其中一個property改變，就會將整個struct的實體換掉，所有相關聯的UI都會Trigger Refresh，影響效能，請小心使用struct配合State。
 - 將其他線程取得的值(常見如:API)指定給State變數, SwiftUI會自動處理跳至主線程，不需手動處理
 
+@Environment
+==
+- 在Observation framework, `@Environment`除了透過 Key Path方式取得內建屬性:`EnvironmentValues`，現在也可以用於自訂類型，取代原有的`@EnvironmentObject`:
+```
+//宣告方式一: 簡易
+//需標記Observable
+@Observable
+class Members{
+    var list: [String] = ["helper1", "helper2", "helper3"]
+}
+
+@main
+struct MyVibeCodingApp: App {
+    
+    @State private var members = Members()
+    
+    var body: some Scene {
+        WindowGroup {
+            LoginView()
+                .environment(members)
+        }
+    }
+}
+
+struct LoginView: View {
+    @Environment(Members.self) private var members
+	//...
+}
+```
+```
+//宣告方式二，使用Key Path方式取得，接近內建取得方式
+@Observable
+class Members{
+    var list: [String] = ["helper1", "helper2", "helper3"]
+}
+
+// MARK: - Environment Key
+private struct MembersKey: EnvironmentKey {
+    static let defaultValue = Members()
+}
+
+extension EnvironmentValues {
+    var members: Members {
+        get { self[MembersKey.self] }
+        set { self[MembersKey.self] = newValue }
+    }
+}
+
+@main
+struct MyVibeCodingApp: App {
+    
+    @State private var members = Members()
+    
+    var body: some Scene {
+        WindowGroup {
+            LoginView(router: Router())
+                .environment(\.members, members)
+        }
+    }
+}
+
+struct LoginView: View {
+    @Environment(\.members) private var members
+	//...
+}
+
+```
+
+
 **(Deprecated)@ObservedObject**
 ==
 - 擁有@Published特性
