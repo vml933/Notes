@@ -1,11 +1,13 @@
 ## SwiftUI學習筆記
 
-- iOS 17+有 Observation framework：`@Observable`可以使用，故`@StateObject`, `@ObservedObject`, `@Published`, `@ObservableObject`, `@EnvironmentObject` 已經棄用, 並且不建議使用@State做為綁定ViewModel；適合用於 local view控制。
+- iOS 17+有 Observation framework：`@Observable`可以使用，故`@StateObject`, `@ObservedObject`, `@Published`, `@ObservableObject`, `@EnvironmentObject` 已經棄用
+- Observation framework 有 `@ObservationIgnored`，可控制標示`@Observable` class 內哪些屬性不必監聽
 
 - [A Deep Dive Into Observation: A New Way to Boost SwiftUI Performance](https://fatbobman.com/en/posts/mastering-observation/)
 - [Migrating from the Observable Object protocol to the Observable](https://developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro)
 
 - Owning the reference, not the data
+- Only properties that appear in the body and are read will trigger a view update.
 
 - List, ForEach
 當struct或class實作Hashable時，使用List或Foreach時，就可以取代 \.id為 \.self
@@ -15,16 +17,16 @@
 ==
 - State是一個property wrapper類型，可以被SwiftUI讀取與寫入
 - State是Value Type，若當參數傳送，是copy by value
+- 若class宣告成State, 則不會有作用，故State不適用於宣告ViewModel. 
 - 當變數宣告為State，是指該View擁有該變數Data的Reference(存在其他儲存空間，由SwiftUI管理), 而非直接存取Data,(因為宣告@State的地方為Struct View，如果要指定值，complier會報錯，狀態刷新:重建View時，為了保持狀態同步，必須額外儲存空間)，當state的值改變時，view會重新complier body(SwiftUI re-render), @State被用來當single source of truth 
 - 擁有@Published特性
 - 當宣告@State var myVar時， 編輯器背後自動產生 var myVar = State<Int>(initialValue: 0), 可透過(有底線) _myVar.wrappedValue 取得該值; 若要將該值放到Binding<T>的變數時，可用myVar.projectedValue。但如果是手動宣告var myVar = State<Int>(initialValue: 0)，變數值前面不用加底線
 - `@State var myIndex` 等於 `_myIndex.wrappedValue`
 - `$myIndex` 等於 `_myIndex.projectedValue` : `Binding<T>`
 - 若將一個struct(內含許多property)，宣告成State，可正常運作，但沒效率，因為其中一個property改變，就會將整個struct的實體換掉，所有相關聯的UI都會Trigger Refresh，影響效能，請小心使用struct配合State。
-- 若將一個class宣告成State, 則不會有作用. 
 - 將其他線程取得的值(常見如:API)指定給State變數, SwiftUI會自動處理跳至主線程，不需手動處理
 
-**@ObservedObject**
+**(Deprecated)@ObservedObject**
 ==
 - 擁有@Published特性
 - 變數有@ObservedObject時，代表變數為外部所擁有，用binding的方式相關聯，來源可能為母層或Environment object，通常用來監聽屬性變化用
@@ -67,7 +69,7 @@ class Model: ObservableObject{
 ```
 - 因為Publisher運作有如State，若使用@Published的屬性必須value type: 基本型態或struct
 
-**@StateObject**
+**(Deprecated)@StateObject**
 ==
 - StateObject是Reference type，用來宣告該屬性被View擁有，是@State的兄弟版(Value type)
 - 有別於@ObservedObject，不會被UI重刷而重建，只會被建立一次
@@ -109,7 +111,7 @@ case let:
     .navigationViewStyle(.stack)
 ```
 - List & ForEach 差別: 相較於ForEach, List為針對特定情境使用: 呈現一張直立表，但並不表示一定使用需要重覆的資料, *List裡頭可以包ForEach與其他單項View,
-ForEach需要用List或VStack包起來
+ForEach需要用List或VStack包起來, 效能: List是lazy loading, ForEach是一次產生全部; List會resuse child view, ForEach會產生全部的child view.
 
 - Button 使用.buttonStyle(.borderless)可以讓裡面的View置中
 ```
@@ -268,6 +270,7 @@ await MainActor.run {
   ... your UI code ...
 }
 ```
+- NavigationLink可單獨使用在ChildView中，如果母層有NavigationStack才會生效.
 - NavigationLink(destination:) 在MVVM架構底下，不應該直接指定destination是哪個View，要透過一個中介的方式，讓ViewModel回傳目標View.
 ```
 var body: some View{
