@@ -1346,6 +1346,8 @@ let anotherInstance = MyClass()
 //從seconds覆寫成nano, 方便快速測試
 anotherInstance.sleep = { try await Task.sleep(for: .nanoseconds($0)) }
 ```
+- `withTaskGroup` 或 `withThrowingTaskGroup` 用來加入多個非同步task同步處理
+ - taskGroup再被取消後，依然可以 addTask，只是這個task馬上會被取消，可以使用`addTaskUnlessCancelled()` 避免這個狀況.
 - 在使用`withTaskGroup`的情況下，如果要在for await裡頭動態加入task，區域變數要加入`[]`才會帶給addTask使用，原因未知
 ```
 await withTaskGroup(of: String.self) { [unowned self] group in
@@ -1371,6 +1373,9 @@ await withTaskGroup(of: String.self) { [unowned self] group in
   
 }
 ```
+- 使用多個 `async let` 與 `taskGroup.addTask` 是同樣目的。
+1. async let 適用於 固定的子任務數量，單純情境。不易cancel任務，依靠 error/ exit。
+2. taskGroup 適用於 大量或變動的子任務，方便cancel任務。
 - `Actor`類型是一種通過編譯檢查，用來保護內部狀態不受並行程式存取的類型
 - `Actor`允許狀態內部同步存取(sync access), 而編譯器會強制外部存取使用非同步存取(async access)
 - `Actor`使用`serial executor`來呼叫方法&存取屬性
