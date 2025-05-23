@@ -909,7 +909,10 @@ status = try await model.status()
 - async let 在宣告時就會觸發，不會等宣告await時才觸發
 
 - `@MainActor`會強制切回主線程存取, 若在非@MainActor或非主線程的區段，存取@MainActor的變數，就要用async/await的方式
+- `@MainActor`常用來搭配`UIKit/SwiftUI`;`actor`只是確保自訂類型線程安全
 ```
+@MainActor class MyViewModel{}
+
 class MyViewModel{
     @MainActor var myParam = false
     //主線程存取
@@ -1376,11 +1379,14 @@ await withTaskGroup(of: String.self) { [unowned self] group in
 - 使用多個 `async let` 與 `taskGroup.addTask` 是同樣目的。
 1. async let 適用於 固定的子任務數量，單純情境。不易cancel任務，依靠 error/ exit。
 2. taskGroup 適用於 大量或變動的子任務，方便cancel任務。
+- `Actor` 可以確保當有task存取時就Locked，結束才Unlocked，就是所謂的 Mutual Exclusion
+- `Actor` 是`reference type`，與`class`不同的是, 確保同一時間只能被一個task存取，確保線程安全，避免data races.
+- `Actor` 如上述，需搭配 `await`.
 - `Actor`類型是一種通過編譯檢查，用來保護內部狀態不受並行程式存取的類型
 - `Actor`允許狀態內部同步存取(sync access), 而編譯器會強制外部存取使用非同步存取(async access)
-- `Actor`使用`serial executor`來呼叫方法&存取屬性
-- `Sendable`是一個protocol, 在並行(concurrency)程式執行中是安全的，大部分的`Value Type`: Bool, Double, Int...都是Sendable的一員，`Actor`也是; class因為是`Reference Type`，不為Sendable的一員.
-- 在actor的類別下，前面加上`nonisolated`的func，會被視為普通的class方法，並移除安全檢查，稍為提升運行速度。像一些靜態方法，例如 ProjectStorage的Convert系列，不會改變本身狀態；如遇到Compilier錯誤提示要加上await該方法，皆可在該方法標記`nonisolated`解除該警告
+- `Actor`在自己的`serial executor`來呼叫方法&存取屬性；`@MainActor`僅在主線程執行
+- `Sendable`是一個protocol, 在並行(concurrency)程式執行中是安全的，大部分的`Value Type`: Bool, Double, Int...都是Sendable的一員，`Actor`也是`Sendable`; `class`因為是`Reference Type`，不為Sendable的一員.
+- 在actor的類別下，如果確認不受`task`或`thread`影響的`func`，如get，前面加上`nonisolated`，會被視為普通的class方法，並移除安全檢查，稍為提升運行速度。像一些靜態方法，例如 ProjectStorage的Convert系列，不會改變本身狀態；如遇到Compilier錯誤提示要加上await該方法，皆可在該方法標記`nonisolated`解除該警告
 ```
 actor MyModel{
  nonisolated func convertSomeFunc() async throw{...}
