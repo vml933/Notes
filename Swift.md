@@ -864,6 +864,7 @@ for await number in Counter(howHigh: 10) {
 ```
 - async / await最大的好處，再也不用譫心 weak或strongly capture self, 因為不再使用escaping closures callback
 - async / await Async的相關class大部分都可以 throws error，所以使用大部分都用try catch
+- async / await 也有類似Rx或Combine的modifer可使用，[swift async algorithms](https://github.com/apple/swift-async-algorithms).
 - 每一個`await`字眼出現，表示線程有可能改變; 每個`await`都會透過系統來引導執行，該系統會對task優先排序、取消請求、或是往上回報錯誤
 - Swift的Concurrency帶有子母(Hierarchy)概念: 允許母層task取消時，也取消所有子層task(task呼叫另一task時，形成子母關係); 或是等待子層所有task都完成後，再完成母層task; 高等級task優先執行低等級task
 ```
@@ -931,6 +932,7 @@ func fetchData(vm: MyViewModel) async{
     await vm.myParam = true
 }
 ```
+- `@TaskLocal` 實務上不常使用
 - `@TaskLocal`用來宣告給Task當區域變數使用，只能宣告在static或global的變數，有幾個特點:
 1. 獨立於同一個Task與子Task裡面，每個Task的TaskLocal變數，都是不同版本的存在
 1. 封裝性, 子Task可以覆寫母Task的TaskLocal變數
