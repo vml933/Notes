@@ -135,13 +135,13 @@ case let .upc(numberSystem, product, check):
 SomeAPI.someFunc(){ value, error in
   switch (value, error){
   case (nil, let error?):
-...
+...// error有值
   case (let value?, nil):
-...
+...// value有值
   case (nil, nil):
-...
+...// 都沒值
   case let (address?, error?):
-    ...
+... // 都有值
   }
 }
 //或
@@ -1002,6 +1002,7 @@ let sample = Sample()
 sample.someFunc()
 ```
 - `withCheckedContinuation(function:_:)`&` withCheckedThrowingContinuation(function:_:)`用來介接callback base的func給async/await用，只會回傳一個結果，類似RxSwift的`Single`或Combine的`Future`
+- 其實`AsyncStream`也有`Continuation`介接callback, 但使用情境不同，用來介接連續的元素(永不結束)
 - 實作運用: 把`withCheckedContinuation`裡頭的`continuation<T, Error>`傳到另一個class裡面做運用，但記得一定要送出一個結果出來，不然task無法清空
 ```
 func shareLocation() async throws {
@@ -1352,7 +1353,9 @@ let anotherInstance = MyClass()
 anotherInstance.sleep = { try await Task.sleep(for: .nanoseconds($0)) }
 ```
 - `withTaskGroup` 或 `withThrowingTaskGroup` 用來加入多個非同步task同步處理
- - taskGroup再被取消後，依然可以 addTask，只是這個task馬上會被取消，可以使用`addTaskUnlessCancelled()` 避免這個狀況.
+- `withTaskGroup` 或 `withThrowingTaskGroup`中的`TaskGroup`是實作 `AsyncSequence`, 代表可以使用iterate的方式取得所有工作的值.
+- `withTaskGroup` 或 `withThrowingTaskGroup` 有一個 `.waitForAll()`，主要用來 "是關心是否完成，不關心結果，例如Log或存檔"，"其中一個task出錯，馬上會往外丟錯，有效率"
+- taskGroup再被取消後，依然可以 addTask，只是這個task馬上會被取消，可以使用`addTaskUnlessCancelled()` 避免這個狀況.
 - 在使用`withTaskGroup`的情況下，如果要在for await裡頭動態加入task，區域變數要加入`[]`才會帶給addTask使用，原因未知
 ```
 await withTaskGroup(of: String.self) { [unowned self] group in
