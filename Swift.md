@@ -1388,7 +1388,7 @@ await withTaskGroup(of: String.self) { [unowned self] group in
 - `Actor` 是`reference type`，與`class`不同的是, 確保同一時間只能被一個task存取，確保線程安全，避免data races.
 - `Actor` 如上述，需搭配 `await`.
 - `Actor`類型是一種通過編譯檢查，用來保護內部狀態不受並行程式存取的類型
-- `Actor`允許狀態內部同步存取(sync access), 而編譯器會強制外部存取使用非同步存取(async access)
+- `Actor`允許狀態內部同步存取(sync access): property inside private func, 而編譯器會強制外部存取使用非同步存取(async access): public func call self private func
 - `Actor`在自己的`serial executor`來呼叫方法&存取屬性；`@MainActor`僅在主線程執行
 - `Sendable`是一個protocol, 在並行(concurrency)程式執行中是安全的，大部分的`Value Type`: Bool, Double, Int...都是Sendable的一員，`Actor`也是`Sendable`; `class`因為是`Reference Type`，不為Sendable的一員.
 - 在actor的類別下，如果確認不受`task`或`thread`影響的`func`，如get，前面加上`nonisolated`，會被視為普通的class方法，並移除安全檢查，稍為提升運行速度。像一些靜態方法，例如 ProjectStorage的Convert系列，不會改變本身狀態；如遇到Compilier錯誤提示要加上await該方法，皆可在該方法標記`nonisolated`解除該警告
