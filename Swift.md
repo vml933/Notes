@@ -944,6 +944,30 @@ DispatchQueue(label: "MyCustomQueue", qos: .userInitiated).async {
     // 執行長時間任務
 }
 ```
+```swift
+// 利用 Queue Serial的特性，避免 Data race，但容易造成 Thread explosion
+let queue: DispatchQueue = DispatchQueue(label: "queue")
+
+API.checkPermission(completion: { allowed in
+    if allowed {
+        // 加入排隊
+        queue.async {
+            store.increment(1000)
+        }
+    }
+})
+
+
+API.checkPermission(completion: { allowed in
+    if allowed {
+        // 加入排隊
+        queue.async {
+            store.increment(1000)
+        }
+    }
+})}
+```
+
 - 可為序列 (Serial)(預設) 或並行 (Concurrent)
 - 適合處理多個照順序運行的工作
 
@@ -1190,7 +1214,38 @@ status = try await model.status()
 - `@MainActor` 會強制切回主線程存取
 - 若在非 @MainActor 或非主線程的區段，存取 @MainActor 的變數，就要用 async/await 的方式
 - `@MainActor` 常用來搭配 `UIKit/SwiftUI`
-- `actor` 只是確保自訂類型線程安全
+### Actor
+- `actor` 確保類型線程安全，一率在自己的`serial executor`下，確保來存取資源的人都能夠依序執行
+- 以下面的片段為例，在 Actor model 的概念上，對 actor 來說，呼叫 increment 這個動作被稱為送一個 “message” 進去 actor，所以你不是直接呼叫 increment 這個 method，而是送一個 “message” 告訴 actor “你需要做 increment 這個動作”。actor 收到這樣的訊息就會開始做事，而送訊息進去的人就要在外面等它完成
+
+```swift
+// 因為外面世界是沒有辦法對 actor 做直接的存取，actor 裡面的資源 (properties, methods) 只能被自己人使用，也就是這些資源是被隔離 (isolated)的。
+let store = BalanceStore()
+store.increment(100) // Compilier Error
+
+// actor 以外安全地呼叫 increment，我們可以利用 Task 產生一個獨立的環境，也就是一個新的 context （或 concurrency domain），被包在 closure 裡面的程式碼有它自己的排程，你可以在這個 closure 裡面運用 async/await，而不用擔心佔用目前的 thread。
+
+let store = BalanceStore()
+Task {
+    await store.increment(100) // Correct
+}
+``` 
+- 如果讀取的屬性本身是不能被修改的 ，那當然也不會有上面描述的非同步問題，所以你可以直接讀取這個資源。
+```swift
+actor BalanceStore {
+    let accountName: String
+}
+
+let store = BalanceStore()
+print(store.accountName)   // Okay!
+``` 
+- 非隔離 (non-isolated) 就表示你不需要準備 concurrency domain（Task {} 或 Task.detached {}，或 await) 也能夠隨意地讀取。隔離 (isolated) 指的就是這個東西是受到保護的，需要標注 await 才能夠安全地讀取。
+```swift
+actor BalanceStore {
+    let accountName: String              // non-isolated
+    var accountNickName: String          // isolated
+}
+``` 
 
 ```swift
 @MainActor class MyViewModel {}
@@ -1215,7 +1270,7 @@ func fetchData(vm: MyViewModel) async {
     await vm.myParam = true
 }
 ```
-
+- [AppCoda: Swift 5.5 的新語法和機制 讓我們用最直觀的方式撰寫非同步程式](https://www.appcoda.com.tw/swift-concurrency-actor/)
 ### @TaskLocal
 - `@TaskLocal` 實務上不常使用
 - 用來宣告給 Task 當區域變數使用，只能宣告在 static 或 global 的變數
