@@ -37,7 +37,13 @@
 
 ---
 
-## 基礎語法與概念
+## 語法
+- 顯示Sandbox使用者資料夾路徑`Documents`，其他常用路徑如`Library`、`Library\Caches`，iOS 備份包含`Document`與`Libray`，不含`Caches`。取用方式參考 [URL](https://developer.apple.com/documentation/foundation/url) 的 Accessing common directories (iOS 16.0+)
+```
+print(URL.documentsDirectory) 
+// file:///Users/mark/Library/Developer/.../Documents/
+```
+- UserDefault 為 plist 檔，儲存在Sandbox中`Library`->`Preferences`
 
 ### 迴圈技巧
 

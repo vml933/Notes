@@ -187,7 +187,6 @@ guard
   case let symbolName = "\(character.lowercased()).square",
 ...
 ```
-
 ## 佈局技巧
 
 - 如果frame長寬設定為`.infinity`，將會撐滿父層
@@ -210,9 +209,24 @@ NavigationView {
   - 產生全部的child view
 
 ## UI元件技巧
+- 使用 Date() 可建立簡易的倒數元件
+```swift
+let interval: TimeInterval = 30
+Text(Date().addingTimeInterval(interval), style: .timer) //0:29
+Text(Date().addingTimeInterval(interval), style: .timer) //29 sec
 
+```
 - Button使用`.buttonStyle(.borderless)`可以讓裡面的View置中
 - `.sheet(isPresented: $addingNewBook){ NewBookView()}`可以寫成`.sheet(isPresented: $addingNewBook, content: NewBookView.init)`
+- `.sheet`的content可以配合`.presentationDetents`，控制sheet全營幕或半營幕
+```swift
+myButton
+    .sheet(isPresented: $isShow) {
+        SubView()
+            .presentationDetents([.large, .medium])
+    }
+
+```
 - 要把ToolBar秀出來，可以包在NavigationView裡面
 - @Published someProperty可以用$存取, 即使該class沒有繼承ObservableObject
 - 使用assign(to: \.someProperty, on: self)可以將發出的元素綁定在自身的@Published值(Republishing), 會回傳一個strong reference
@@ -331,9 +345,13 @@ window.rootViewController?.present(alertController, animated: true)
   ```
 
 ## 實用View與組件
-
+- 使用 TabView 製作 Walkthrough 的頁面
 - EmptyView(): 方便開發用
-- Label: 可以加上圖示的View
+- Label: 有圖示(左)與文字(右)的View
+- Button裡的Content: 可以有一個以上的View，會用一個隱藏的`HStack`包起來
+  ```swift
+   Button(action: () -> Void, label: () -> Label)
+  ```
 - 要在SwiftUI底下取得UIWindow, 要用`@Environment`:
   ```swift
   @Environment(\.window) var window: UIWindow?
@@ -388,7 +406,8 @@ window.rootViewController?.present(alertController, animated: true)
   }
   ```
 
-## 預覽自訂
+## 預覽
+- 專案中有一個`Preview Content`資料夾，裡頭可以放XCode裡SwiftUI Preview會用到的腳本，不會包到App裡
 
 - #Preview可以設定預覽大小，方便簡視子View，但預覽視窗要設定成Selectable，不是在device Mode底下
   ```swift
