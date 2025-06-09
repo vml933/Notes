@@ -390,6 +390,14 @@ window.rootViewController?.present(alertController, animated: true)
 
 ## 預覽自訂
 
+- #Preview可以設定預覽大小，方便簡視子View，但預覽視窗要設定成Selectable，不是在device Mode底下
+  ```swift
+	#Preview(traits: .sizeThatFitsLayout) {
+    	SubView()
+	}
+  ```
+
+
 - Preview可以設定預覽大小, 有`.device`, `sizeThatFits`, `.fixed(width:, height:)`:
   ```swift
   struct MyView_Previews: PreviewProvider {
