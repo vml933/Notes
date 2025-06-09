@@ -484,6 +484,39 @@ window.rootViewController?.present(alertController, animated: true)
   }
   ```
 
+- 除了使用 `GeometryReader`設定子View的大小，也可以使用 `.containerRelativeFrame(_:alignment:_:)`(iOS 17+)
+  ```swift
+	//GeometryReader
+	GeometryReader { proxy in
+    	Color.white
+        	.frame(height: proxy.size.height * 0.5)
+	}
+	//containerRelativeFrame
+	Color.white
+    	.containerRelativeFrame(.vertical) { length, axis in
+    	    	length * 0.5
+    	}
+
+  ```
+- `ViewThatFits` 依據母空間，儘可能置入最合適的View，選擇最適方案 (iOS 17+)
+  ```swift
+    var body: some View {
+            ViewThatFits(in: .horizontal) {
+				// 方案 1
+                HStack {
+                    Text("\(uploadProgress.formatted(.percent))")
+                    ProgressView(value: uploadProgress)
+                        .frame(width: 100)
+                }
+				// 方案 2
+                ProgressView(value: uploadProgress)
+                    .frame(width: 100)
+				// 方案 1
+                Text("\(uploadProgress.formatted(.percent))")
+            }
+    }
+  ```
+
 ## 綁定與選擇
 
 - 若view端的List需要綁定selection在vm的selection上，vm的變數不需宣告成@Published, 避免view端多餘的UI-refresh:
