@@ -351,9 +351,12 @@ extension String: LocalizedError {
         return self
     }
 }
+// 或
+struct MyError: Error{}
 
 do {
     throw "This is sample error"
+	throw MyError()
 } catch {
     // 處理錯誤
 }
@@ -1069,14 +1072,53 @@ let logger = Logger(subsystem: "com.example.Wallet", category: #fileID)
 
 ### Task 執行環境
 - Task 會在調用它的 actor 執行
-- 如果要建立不在該 actor 上的 task，可用 `Task.detached(priority:operation:)`
-- 帶有特權的 Task，建立的 task 就不會繼承父層的優先權，但會對執行效率造成負面影響，不建議使用
+- 如果要建立不在該 actor 上的 task，可用 `Task.detached(priority:operation:)`， 是帶有特權的 Task，建立的 task 就不會繼承父層的優先權，但會對執行效率造成負面影響，不建議使用
 
 ### Task 儲存
 ```swift
 // 如果要將 Task 儲存在變數內，因為成功不會回傳值，有可能噴錯
 @State var downloadTask: Task<Void, Error>?
 ```
+
+### Task 階層概念 (Hierarchy)
+Swift 的 Concurrency 帶有子母 (Hierarchy) 概念：
+- 允許母層 task 取消時，也取消所有子層 task
+- 等待子層所有 task 都完成後，再完成母層 task
+- 高等級 task 優先執行低等級 task
+- 如果不是由母層 task 建立的 task，都是 top-level，例如由UIButton觸發
+- 如果是由 Task.detached {}，就不會有子母概念
+
+### Task 陷阱: Data races
+- 可在 XCode 的 `Edit scheme` 裡的 `Diagnostics` 開啟 `Thread Sanitizer`，debug run時會檢查是否會Data Racing
+
+
+### 實際應用範例
+```swift
+func fetchSongs(for artist: String) async throws -> [MusicItem] {
+    guard let url = URL(string: "https://itunes.apple.com/search?media=music&entity=song&term=\(artist)") else {
+        fatalError()
+    }
+    
+    let (data, response) = try await URLSession.shared.data(from: url)
+
+    if !Task.isCancelled {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw FetchError.urlResponse
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw FetchError.statusCode(httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        let mediaResponse = try decoder.decode(MediaResponse.self, from: data)
+        return mediaResponse.results
+    } else {
+        print("task cancelled")
+        return [MusicItem]()
+    }
+}
+```
+
 
 ### AsyncSequence
 - AsyncSequence 只定義取得 Element 的方式，本身並不產生 Element
@@ -1131,39 +1173,6 @@ for await number in Counter(howHigh: 10) {
 - 每一個 `await` 字眼出現，表示線程有可能改變
 - 每個 `await` 都會透過系統來引導執行，該系統會對 task 優先排序、取消請求、或是往上回報錯誤
 
-### 階層概念 (Hierarchy)
-Swift 的 Concurrency 帶有子母 (Hierarchy) 概念：
-- 允許母層 task 取消時，也取消所有子層 task
-- 等待子層所有 task 都完成後，再完成母層 task
-- 高等級 task 優先執行低等級 task
-
-### 實際應用範例
-```swift
-func fetchSongs(for artist: String) async throws -> [MusicItem] {
-    guard let url = URL(string: "https://itunes.apple.com/search?media=music&entity=song&term=\(artist)") else {
-        fatalError()
-    }
-    
-    let (data, response) = try await URLSession.shared.data(from: url)
-
-    if !Task.isCancelled {
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw FetchError.urlResponse
-        }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            throw FetchError.statusCode(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        let mediaResponse = try decoder.decode(MediaResponse.self, from: data)
-        return mediaResponse.results
-    } else {
-        print("task cancelled")
-        return [MusicItem]()
-    }
-}
-```
-
 ### Async Let
 - `async let` 可以確保非同步時一定有值，概念類似第三方套件的 promise
 - 只能用 await 取其中的值
@@ -1187,10 +1196,11 @@ status = try await model.status()
 - `async let` 在宣告時就會觸發，不會等宣告 await 時才觸發
 
 ### @MainActor
-- `@MainActor` 會強制切回主線程存取
-- 若在非 @MainActor 或非主線程的區段，存取 @MainActor 的變數，就要用 async/await 的方式
+- `@MainActor` 是 `actor`的一種，僅使用主線程存取
+- 若在非 @MainActor 或非主線程的區段，存取 @MainActor 的變數，就要用 `async/await` 的方式
+- 若要存取 `actor class`裡的變數，必須在 `actor` 本身呼叫修改，若外部要呼叫，或是 actor 裡有 closure 要呼叫，同樣要用 `async/await`
 - `@MainActor` 常用來搭配 `UIKit/SwiftUI`
-- `actor` 只是確保自訂類型線程安全
+- `actor` 只是確保自訂類型線程安全，避免 data racing.
 
 ```swift
 @MainActor class MyViewModel {}
@@ -1285,6 +1295,31 @@ func shareLocation() async throws -> String {
 }
 
 let myLocation = try await shareLocation()
+```
+- 無論是`AsyncStream`或是`withCheckedContinuation`，如果有另外儲存continuation為實體變數，，保持好習慣，在 deinit 加上 `myContinuation?.finish()`，關閉stream
+
+- 若使用`withThrowingTaskGroup` 或 `withTaskGroup`，為了避免發生其中一個 task 出錯，就拿不到其他已成功 task 的窘境，task 可以改回傳 `Result<String, Error>`，方便處理 Error
+```
+func worker(number: Int) async -> Result<String, Error> {
+
+  let task = MyTask()
+
+  let result: Result<String, Error>
+  do {
+    result = try .success(await task.run())
+  } catch {
+    result = .failure(error)
+  }
+
+  return result
+}
+
+struct MyTask {
+  func run() async throws -> String {
+    // maybe throw some error
+  }
+}
+
 ```
 
 ### Task.sleep() vs Thread.sleep() 差別
