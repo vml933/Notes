@@ -133,14 +133,55 @@ Task {
 
 ### Task 執行環境
 - Task 會在調用它的 actor 執行
-- 如果要建立不在該 actor 上的 task，可用 `Task.detached(priority:operation:)`
-- 帶有特權的 Task，建立的 task 就不會繼承父層的優先權，但會對執行效率造成負面影響，不建議使用
+- 如果要建立不在該 actor 上的 task，可用 `Task.detached(priority:operation:)`， 是帶有特權的 Task，建立的 task 就不會繼承父層的優先權，但會對執行效率造成負面影響，不建議使用
 
 ### Task 儲存
 ```swift
 // 如果要將 Task 儲存在變數內，因為成功不會回傳值，有可能噴錯
 @State var downloadTask: Task<Void, Error>?
 ```
+
+### Task 階層概念 (Hierarchy)
+Swift 的 Concurrency 帶有子母 (Hierarchy) 概念：
+- 允許母層 task 取消時，也取消所有子層 task
+- 等待子層所有 task 都完成後，再完成母層 task
+- 高等級 task 優先執行低等級 task
+- 如果不是由母層 task 建立的 task，都是 top-level，例如由UIButton觸發
+- 如果是由 Task.detached {}，就不會有子母概念
+
+### Task 陷阱: Data races
+- 可在 XCode 的 `Edit scheme` 裡的 `Diagnostics` 開啟 `Thread Sanitizer`，debug run時會檢查是否會Data Racing
+
+
+### 實際應用範例
+```swift
+func fetchSongs(for artist: String) async throws -> [MusicItem] {
+    guard let url = URL(string: "https://itunes.apple.com/search?media=music&entity=song&term=\(artist)") else {
+        fatalError()
+    }
+    
+    let (data, response) = try await URLSession.shared.data(from: url)
+
+    if !Task.isCancelled {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw FetchError.urlResponse
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw FetchError.statusCode(httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        let mediaResponse = try decoder.decode(MediaResponse.self, from: data)
+        return mediaResponse.results
+    } else {
+        print("task cancelled")
+        return [MusicItem]()
+    }
+}
+```
+
+
+
 
 ### AsyncSequence
 - AsyncSequence 只定義取得 Element 的方式，本身並不產生 Element
@@ -251,9 +292,9 @@ status = try await model.status()
 - `async let` 在宣告時就會觸發，不會等宣告 await 時才觸發
 
 ### @MainActor
-- `@MainActor` 會強制切回主線程存取
-- 若在非 @MainActor 或非主線程的區段，存取 @MainActor 的變數，就要用 async/await 的方式
-- `@MainActor` 常用來搭配 `UIKit/SwiftUI`
+- `@MainActor` 是 `actor`的一種，僅使用主線程存取
+- 若在非 @MainActor 或非主線程的區段，存取 @MainActor 的變數，就要用 `async/await` 的方式
+- 若要存取 `actor class`裡的變數，必須在 `actor` 本身呼叫修改，若外部要呼叫，或是 actor 裡有 closure 要呼叫，同樣要用 `async/await`
 ### Actor
 - `actor` 確保類型線程安全，一率在自己的`serial executor`下，確保來存取資源的人都能夠依序執行
 - 以下面的片段為例，在 Actor model 的概念上，對 actor 來說，呼叫 increment 這個動作被稱為送一個 “message” 進去 actor，所以你不是直接呼叫 increment 這個 method，而是送一個 “message” 告訴 actor “你需要做 increment 這個動作”。actor 收到這樣的訊息就會開始做事，而送訊息進去的人就要在外面等它完成
@@ -381,6 +422,33 @@ func shareLocation() async throws -> String {
 
 let myLocation = try await shareLocation()
 ```
+
+- 無論是`AsyncStream`或是`withCheckedContinuation`，如果有另外儲存continuation為實體變數，，保持好習慣，在 deinit 加上 `myContinuation?.finish()`，關閉stream
+
+- 若使用`withThrowingTaskGroup` 或 `withTaskGroup`，為了避免發生其中一個 task 出錯，就拿不到其他已成功 task 的窘境，task 可以改回傳 `Result<String, Error>`，方便處理 Error
+```
+func worker(number: Int) async -> Result<String, Error> {
+
+  let task = MyTask()
+
+  let result: Result<String, Error>
+  do {
+    result = try .success(await task.run())
+  } catch {
+    result = .failure(error)
+  }
+
+  return result
+}
+
+struct MyTask {
+  func run() async throws -> String {
+    // maybe throw some error
+  }
+}
+
+```
+
 
 ### Task.sleep() vs Thread.sleep() 差別
 1. **Concurrency Model**: `Task.sleep` 適用 Swift 並行機制 (`async/await`) 而且不卡線程；`Thread.sleep` 為舊版卡線程的一種方法

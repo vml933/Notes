@@ -348,9 +348,13 @@ extension String: LocalizedError {
         return self
     }
 }
+// 或
+struct MyError: Error{}
+
 
 do {
     throw "This is sample error"
+	throw MyError()
 } catch {
     // 處理錯誤
 }
