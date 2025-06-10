@@ -33,6 +33,8 @@
 - 將其他線程取得的值(常見如:API)指定給State變數, SwiftUI會自動處理跳至主線程，不需手動處理
 
 ### @Environment
+- `@Environment`取得 App 的屬性，如`window`, `colorScheme`; `View` 也可以同樣的方式取得相關屬性，如`font`..等
+- `.environment(\.keyPath, VALUE)` 設定該View底下所有environment的值
 - 在Observation framework, `@Environment`除了透過 Key Path方式取得內建屬性:`EnvironmentValues`，現在也可以用於自訂類型，取代原有的`@EnvironmentObject`:
 
 #### 簡易宣告方式
