@@ -209,11 +209,23 @@ NavigationView {
   - 產生全部的child view
 
 ## UI元件技巧
-- 使用 Date() 可建立簡易的倒數元件
+- 使用 Date() 可建立簡易的倒數元件, 但無法控制，使用`TimelineView`較方便
 ```swift
+// Date()
 let interval: TimeInterval = 30
 Text(Date().addingTimeInterval(interval), style: .timer) //0:29
 Text(Date().addingTimeInterval(interval), style: .timer) //29 sec
+
+// TimelineView
+TimelineView(.animation(minimumInterval: 1.0,paused: timeRemaining <= 0)) { context in
+        Text("\(timeRemaining) seconds")
+        timeRemaining -= 1
+    }
+    .onChange(of: timeRemaining) {
+      if timeRemaining < 1 {
+        print("done")
+      }
+    }
 
 ```
 - Button使用`.buttonStyle(.borderless)`可以讓裡面的View置中
@@ -296,11 +308,15 @@ myButton
   - 特別注意，注入類別實體同時間只能存在一個，若其他地方再注入相同類別，便會取代上一個類別實體
 
 ## UI技巧與訣竅
-
+- 使用 `.shadow`會把所有的子view都加上shadow, 可以加上`.background`之後再加`.shadow`顯示較正常
+  ```swift
+	MyView()
+	.background(Color.primary.colorInvert().shadow(color: .primary.opacity(0.4), radius: 7))
+  ```
 - Ctrl + Option + Click點擊canvas畫面，出現元件設定選項
 - 假若Object是一個@EnvironmentObject, 裡面有一個Compute Property: param, 若想要把這個param放到Binding<T>裡，可以用Binding的靜態方法.constant包起來，它可以由一個無法修改值初始化，ex:.constant(challengesViewModel.numberOfAnswered)
 - [Environment值列表](https://developer.apple.com/documentation/swiftui/environmentvalues) - 可自訂environment屬性
-- @ViewBuilder: 當view的body可能會產出多個view時使用:
+- `@ViewBuilder`: 當view的body可能會產出多個view時使用:
   ```swift
   @ViewBuilder
   var body: some View {
@@ -310,6 +326,47 @@ myButton
           VStack{...}
       }
   }
+  ```
+- `@ViewBuilder`: 自訂 Container View, `Group`, `HStack`, `VStack`...也是類似實作
+  ```swift
+    struct PaddingContainer<T: View>: View {
+        
+        let content: T
+        
+        init(@ViewBuilder content: () -> T) {
+            self.content = content()
+        }
+        
+        var body: some View {
+            content
+                .padding() //一率加padding
+        }
+    }
+
+    PaddingContainer {
+        Color.gray
+    }
+
+  ```
+ - `@ViewBuilder`: 自訂產生 View 的 func
+  ```swift
+    struct MyView: View {
+        
+        var body: some View {
+            colorShape()
+        }
+        
+        @ViewBuilder
+        func colorShape() -> some View {
+            if true {
+                Circle()
+                    .fill(Color.green)
+            }else{
+                Circle()
+                    .fill(Color.red)
+            }
+        }
+    }
   ```
 
 ## 與UIKit整合
