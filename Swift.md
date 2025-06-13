@@ -66,6 +66,41 @@ for i in array.indices.reversed() {
     print(i)
 }
 ```
+### `some protocol` 與 `any Protocol` 比較
+- `some`的速度較快
+- 與 `any` 類似，目的都是在隱藏實作，不希望 API 使用者依賴具體型別
+- `some`目的在於簡化API，為了使用者手叫方便
+- `any` 目的在於提供`多種`類型實作；`some`的背後只限制一種類似，否則 Compiler 出錯
+```swift
+protocol Animal {
+    func speak() -> String
+}
+
+struct Dog: Animal {
+    func speak() -> String { "Woof" }
+}
+
+struct Cat: Animal {
+    func speak() -> String { "Meow" }
+}
+// some protocol
+func makeAnimal(useDog: Bool) -> some Animal {
+    if useDog {
+        return Dog()
+    } else {
+        return Cat() // ❌ 編譯錯誤：return type of function must be the same
+    }
+}
+// any protocol
+func makeAnimal(useDog: Bool) -> any Animal {
+    if useDog {
+        return Dog()
+    } else {
+        return Cat() // ✅ OK：都符合 Animal 協議
+    }
+}
+```
+
 
 ### 函數與泛型
 
@@ -304,6 +339,18 @@ Calendar.current.monthSymbols[month - 1]
 
 #### 枚舉遍歷
 - 實作 `CaseIterable`，就可以用 `SomeEnum.allCases` 遍歷所有類型
+- `enum` 實作 `Identifiable`方式，直接加上computer property id
+```swift
+enum ToolbarSelection: Identifiable {
+    
+    var id: Int{
+        hashValue
+    }
+    
+    case photoModel
+    ...
+}
+swift
 
 #### 自訂 Delegate
 - 自訂的 Class 想要使用官方的 Delegate，必須繼承 `NSObject`
@@ -608,6 +655,11 @@ array2.append(3)
 ---
 
 ## 陣列相關
+- 以下是同樣的事，第一行是sugar
+```swift
+var cards: [Card] = []
+var cards: Array<Card> = []
+```
 
 ### 記憶體管理
 - 宣告 Array 時 Swift 會給一個預設空間
@@ -926,6 +978,15 @@ let dateFormatter: DateFormatter = {
 }()
 ```
 ### 實用功能
+
+#### Operator Overloading，可用來新增支援格式, 相加`CGSize`為例
+```swift
+func +(lhs: CGSize, rhs: CGSize) -> CGSize {
+    CGSize(
+       width: lhs.width + rhs.width,
+       height: lhs.height + rhs.height)
+}
+```
 
 #### @discardableResult
 - 關閉 func 有回傳值時，但使用的地方沒有宣告變數接收造成的 warning

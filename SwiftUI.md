@@ -3,7 +3,18 @@
 ## Observation Framework
 
 - iOS 17+有 Observation framework：`@Observable`可以使用，故`@StateObject`, `@ObservedObject`, `@Published`, `@ObservableObject`, `@EnvironmentObject` 已經棄用
-- Observation framework 有 `@ObservationIgnored`，可控制標示`@Observable` class 內哪些屬性不必監聽
+- Observation framework 有 `@ObservationIgnored`，可控制標示`@Observable` class 內哪些屬性不必監聽，一些情境可以配合`@Bindable`.
+- `@Bindable`: 讓`@Observable`的物件生成`@Binding`提供修改，經常放在`some View`裡面
+```swift
+struct TitleEditView: View {
+    @Environment(Book.self) private var book
+
+    var body: some View {
+        @Bindable var book = book
+        TextField("Title", text: $book.title)
+    }
+}
+```
 
 ### 參考資源
 - [A Deep Dive Into Observation: A New Way to Boost SwiftUI Performance](https://fatbobman.com/en/posts/mastering-observation/)
@@ -246,7 +257,7 @@ myButton
 - 使用assign(to: \.someProperty, on: self)可以將發出的元素綁定在自身的@Published值(Republishing), 會回傳一個strong reference
 - .onAppear {} - 當view出現時觸發
 - .onReceive(_:perform:) - 當你需要publisher但不需要ObservableObject/ObservedObject時使用:
-  ```swift
+```swift
   struct ReceiverView: View {
       let timer = Timer.publish(every: 1.0, on: .main, in: .default).autoconnect()
       @State var time = ""
@@ -256,9 +267,9 @@ myButton
               .onReceive(timer) { t in time = String(describing: t) }
       }
   }
-  ```
+```
 - .onChange(of:) - 監聽@State值變化:
-  ```swift
+```swift
   struct PlayerView: View {
       var episode: Episode
       @State private var playState: PlayState = .paused
@@ -270,14 +281,38 @@ myButton
               }
       }
   }
-  ```
+```
+- 使用變數的方式安排小元件，加強易讀性:
+```swift
+struct CardsListView: View {  
+  //變數
+  private let content = RoundedRectangle(cornerRadius: 30)
+
+  var body: some View {
+    list 
+      .fullScreenCover(isPresented: $isPresented) {
+        ItemView()
+      }
+	  .foregroundStyle(color)
+  }
+  //變數
+  var list: some View {
+    ScrollView(showsIndicators: false) {
+      VStack {
+        ...
+      }
+    }
+  }
+	
+}
+```
 
 ## 非同步程式設計
 
 - 當停止Task.Handle，並不會停止過程，只是標註"Task已取消"，必須自己實作取消過程
 - iOS15 SwiftUI新增一個.task modifier, 當這個view出現時，執行非同步工作; 當View消失時，會cancel Task
 - ContentView可設定Preview設備:
-  ```swift
+```swift
   struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
       Group {
@@ -292,7 +327,7 @@ myButton
       }
     }
   }
-  ```
+```
 [Reference](https://lawrey.medium.com/creating-a-swiftui-combine-alamofire-mvvm-login-example-df0bdc30ef25)
 
 ## 佈局差異
@@ -311,15 +346,15 @@ myButton
 
 ## UI技巧與訣竅
 - 使用 `.shadow`會把所有的子view都加上shadow, 可以加上`.background`之後再加`.shadow`顯示較正常
-  ```swift
+```swift
 	MyView()
 	.background(Color.primary.colorInvert().shadow(color: .primary.opacity(0.4), radius: 7))
-  ```
+```
 - Ctrl + Option + Click點擊canvas畫面，出現元件設定選項
 - 假若Object是一個@EnvironmentObject, 裡面有一個Compute Property: param, 若想要把這個param放到Binding<T>裡，可以用Binding的靜態方法.constant包起來，它可以由一個無法修改值初始化，ex:.constant(challengesViewModel.numberOfAnswered)
 - [Environment值列表](https://developer.apple.com/documentation/swiftui/environmentvalues) - 可自訂environment屬性
 - `@ViewBuilder`: 當view的body可能會產出多個view時使用:
-  ```swift
+```swift
   @ViewBuilder
   var body: some View {
       if verticalSizeClass == .compact {    
@@ -328,9 +363,9 @@ myButton
           VStack{...}
       }
   }
-  ```
+```
 - `@ViewBuilder`: 自訂 Container View, `Group`, `HStack`, `VStack`...也是類似實作
-  ```swift
+```swift
     struct PaddingContainer<T: View>: View {
         
         let content: T
@@ -349,9 +384,9 @@ myButton
         Color.gray
     }
 
-  ```
+```
  - `@ViewBuilder`: 自訂產生 View 的 func
-  ```swift
+```swift
     struct MyView: View {
         
         var body: some View {
@@ -369,7 +404,7 @@ myButton
             }
         }
     }
-  ```
+```
 
 ## 與UIKit整合
 
@@ -393,7 +428,7 @@ window.rootViewController?.present(alertController, animated: true)
 
 - SwiftUI的View常透過Init()的方式new一個@ObservedObject，或是透過Init(:)將外面的Observable帶進來
 - 在ObservableObject裡宣告的屬性(沒有@Published之類的Wrapper)，可以在前面加上$變成Binding，傳給View作綁定:
-  ```swift
+```swift
   class JobConnectionManager: ObservableObject {
       var isReceivingJobs: Bool = false
   }
@@ -401,50 +436,50 @@ window.rootViewController?.present(alertController, animated: true)
   var headerView: some View {
      Toggle("Receive Jobs", isOn: $jobConnectionManager.isReceivingJobs)
   }
-  ```
+```
 
 ## 實用View與組件
 - 使用 TabView 製作 Walkthrough 的頁面
 - EmptyView(): 方便開發用
 - Label: 有圖示(左)與文字(右)的View
 - Button裡的Content: 可以有一個以上的View，會用一個隱藏的`HStack`包起來
-  ```swift
+```swift
    Button(action: () -> Void, label: () -> Label)
-  ```
+```
 - 要在SwiftUI底下取得UIWindow, 要用`@Environment`:
-  ```swift
+```swift
   @Environment(\.window) var window: UIWindow?
-  ```
+```
 
 ## 線程管理
 
 - .onAppear(perform:)裡頭run的是同步, 若要加非同步async/await，要用Task包起來，或用.task modifier取代.onAppear(perform:)
 - 因為ViewModel多用來觸發UI更新，所以可以在Model的class前面加上@MainActor使之回到主線程:
-  ```swift
+```swift
   @MainActor class ViewModel: ObservableObject {
   // ...
   }
-  ```
+```
 - Property或func前面也可以加`@MainActor`
 - Task是一種top-level asynchronous task，表示可以從同步工作創建任一非同步工作，而且都為頂層Task
 - 若是槽狀建立多重Task，運行時task間並不會有子母關係，都為頂層Task
 - 若在UI層，透過Task執行async，只能確保出發時是在主線程，回來時可能就離開主線程了，因為Task裡頭不同的await，可能跑在不同的線程:
-  ```
+```
   Remember, you learned that every use of await is a suspension point, and your code might resume on a different thread. The first piece of your code runs on the main thread because the task initially runs on the main actor. But after the first await, your code could be running on any thread.
   You need to explicitly route any UI-driving code back to the main actor.
-  ```
+```
 - 使用MainActor.run同等於DispatchQueue.main, 但如果用太多、會有太多的closure，不好閱讀；建議使用@MainActor在func上, 但該func就必須用await呼叫:
-  ```swift
+```swift
   await MainActor.run {
     // ... your UI code ...
   }
-  ```
+```
 
 ## 導航
 
 - NavigationLink可單獨使用在ChildView中，如果母層有NavigationStack才會生效
 - NavigationLink(destination:)在MVVM架構底下，不應該直接指定destination是哪個View，要透過一個中介的方式，讓ViewModel回傳目標View:
-  ```swift
+```swift
   var body: some View {
    NavigationLink(destination: viewModel.nextView) {
     Text("Next view")
@@ -463,33 +498,33 @@ window.rootViewController?.present(alertController, animated: true)
       return NextView(viewModel: viewModel)
     }  
   }
-  ```
+```
 
 ## 預覽
 - 專案中有一個`Preview Content`資料夾，裡頭可以放XCode裡SwiftUI Preview會用到的腳本，不會包到App裡
 
 - #Preview可以設定預覽大小，方便簡視子View，但預覽視窗要設定成Selectable，不是在device Mode底下
-  ```swift
+```swift
 	#Preview(traits: .sizeThatFitsLayout) {
     	SubView()
 	}
-  ```
+```
 
 
 - Preview可以設定預覽大小, 有`.device`, `sizeThatFits`, `.fixed(width:, height:)`:
-  ```swift
+```swift
   struct MyView_Previews: PreviewProvider {
     static var previews: some View {
       JokeCardView()
         .previewLayout(.sizeThatFits)
     }
   }
-  ```
+```
 
 ## 初始化技巧
 
 - 透過init初始化@Binding, @ObservedObject, @StateObject的參數, 變數前面要加底線:
-  ```swift
+```swift
   struct SomeView: View {
    @Binding var myIndex: Int
    @StateObject var vm: My_vm
@@ -503,12 +538,12 @@ window.rootViewController?.present(alertController, animated: true)
       EmptyView()
     }
   }
-  ```
+```
 
 ## 渲染行為
 
 - 如果有使用到GeometryReader並讀取到window的屬性，裡面的sub view會render兩次:
-  ```swift
+```swift
   struct SomeView: View {
     var body: some View {
       GeometryReader { window in
@@ -521,9 +556,9 @@ window.rootViewController?.present(alertController, animated: true)
       }
     }
   }
-  ```
+```
 - 如果有使用@State的變數，但view沒有其他的元素監聽該變數，即使改變該變數的值，畫面也不會重畫；即使有元素監聽該值，如果改變的值跟上一次相同，也不會重畫:
-  ```swift
+```swift
   struct TestContent_view: View {
       @State var param = "0"
       
@@ -541,10 +576,10 @@ window.rootViewController?.present(alertController, animated: true)
           .background(.random) //按Button不會變色
       }
   }
-  ```
+```
 
 - 除了使用 `GeometryReader`設定子View的大小，也可以使用 `.containerRelativeFrame(_:alignment:_:)`(iOS 17+)
-  ```swift
+```swift
 	//GeometryReader
 	GeometryReader { proxy in
     	Color.white
@@ -556,9 +591,9 @@ window.rootViewController?.present(alertController, animated: true)
     	    	length * 0.5
     	}
 
-  ```
+```
 - `ViewThatFits` 依據母空間，儘可能置入最合適的View，選擇最適方案 (iOS 17+)
-  ```swift
+```swift
     var body: some View {
             ViewThatFits(in: .horizontal) {
 				// 方案 1
@@ -574,12 +609,12 @@ window.rootViewController?.present(alertController, animated: true)
                 Text("\(uploadProgress.formatted(.percent))")
             }
     }
-  ```
+```
 
 ## 綁定與選擇
 
 - 若view端的List需要綁定selection在vm的selection上，vm的變數不需宣告成@Published, 避免view端多餘的UI-refresh:
-  ```swift
+```swift
   struct SideBar_view: View {
       @StateObject private var vm: SideBar_vm
       var body: some View {
@@ -590,14 +625,14 @@ window.rootViewController?.present(alertController, animated: true)
   class SideBar_vm: ObservableObject {
       var selectedProjectID: UUID?
   }
-  ```
+```
 
 ## View關閉與呈現
 
 - 如果不使用代入isShow的Binding<Bool>給sheet的view做關閉的橋接，在sheet的view中可以使用`@Environment(\.dismiss) `private var dismiss直接關閉
 - `@Environment(\.isPresented)` private var isPresented跟`onAppear(perform:)`類似，但isPresented會被呼叫多次
 - Text預設字型大小為13.0，內建的字型表:
-  ```
+```
   .largeTitle    34.0
   .title1        28.0
   .title2        22.0
@@ -609,21 +644,61 @@ window.rootViewController?.present(alertController, animated: true)
   .footnote      13.0
   .caption1      12.0
   .caption2      11.0
-  ```
+```
 - `interactiveDismissDisabled`: 防止使用者用手勢下拉/按空白處的方式關閉sheet或popover
 - 背景類的View可用`.ignoresSafeArea`填滿邊界，`.allowsHitTesting(false)`忽略點擊
 - [`monospacedDigit`](https://developer.apple.com/documentation/swiftui/font/monospaceddigit()): 修改Text的字體，使用等寬的字元，適合用來控制日期顯示, 字串長度不會隨著數字字元變動
 - 如果要顯示進度，可使用Text搭配formater，自動帶%符號:
-  ```swift
+```swift
   Text(progress, format: .percent.precision(.fractionLength(0)))
       .bold()
       .monospacedDigit()
-  ```
+```
 
 ## 自訂Modifier
 
+- `ViewModifier` 客製`modifier`
+```swift
+    struct ResizableView: ViewModifier {
+        
+        @State private var transform = Transform()
+        @State private var scale: CGFloat = 1
+        
+        func body(content: Content)-> some View {
+            content
+                .frame(width: transform.size.width,
+                       height: transform.size.height)
+                .rotationEffect(transform.rotation)
+                .offset(transform.offset)
+                .gesture(dragGesture)
+                .gesture(SimultaneousGesture(rotationGesture, scaleGesture))
+                .scaleEffect(scale)
+        }
+    }
+
+    #Preview {
+        RoundedRectangle(cornerRadius: 30)
+            .foregroundStyle(.blue)
+            .modifier(ResizableView())
+    }
+
+```
+- 承上例，使用`extension`讓使用上更SwiftUI
+```swift
+    extension View {
+      func resizableView() -> some View {
+        modifier(ResizableView())
+      }
+    }
+
+    #Preview {
+        RoundedRectangle(cornerRadius: 30)
+            .foregroundStyle(.blue)
+            .resizeable()
+    }
+```
 - 可自訂義`if` modifier，因應不同情境為view設定外型:
-  ```swift
+```swift
   private struct CreateButton: View {
       var isApplyBackground = false
       
@@ -649,13 +724,13 @@ window.rootViewController?.present(alertController, animated: true)
           }
       }
   }
-  ```
+```
 
 ## 圖片與文字技巧
 
 - Image可用Text包起來，然後用font size指定圖像大小:
-  ```swift
+```swift
   Text(Image(systemName: "button.programmable"))
       .font(.largeTitle)
-  ```
+```
 - `alignmentGuide`: 可自訂義對齊方式，例如A View的Bottom要對齊B View的Top, 可搭配`.offset(x:y:)`使用
