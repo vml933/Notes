@@ -211,6 +211,7 @@ NavigationView {
 }
 .navigationViewStyle(.stack)
 ```
+- `HStack` 與 `LazyHStack` 差異: HStack 以 `Child View` 大小為主；LazyHStack 不知道稍後讀取的Child View多大，則會撐滿`Parent View`，外層需有`ScrollView`才有效。
 
 ### List vs ForEach差別
 - List: 針對特定情境使用：呈現一張直立表，但並不表示一定需要重覆的資料
@@ -222,6 +223,26 @@ NavigationView {
   - 產生全部的child view
 
 ## UI元件技巧
+- Button可點選範圍
+```swift
+//只有文字可點擊
+Button {
+    //...
+} label: {
+    Label("create New", systemImage: "plus")
+}
+.frame(maxWidth: .infinity)
+
+//所有範圍可點擊
+Button {
+    //...
+} label: {
+    Label("create New", systemImage: "plus")
+    .frame(maxWidth: .infinity)
+}
+
+```
+- `ContentUnavailableView` 用來表示無效或空狀態的View，依使用者 Color Scheme 自動變色，內建 .search (空資料)，也可自訂標題圖案
 - 使用 Date() 可建立簡易的倒數元件, 但無法控制，使用`TimelineView`較方便
 ```swift
 // Date()
@@ -239,7 +260,6 @@ TimelineView(.animation(minimumInterval: 1.0,paused: timeRemaining <= 0)) { cont
         print("done")
       }
     }
-
 ```
 - Button使用`.buttonStyle(.borderless)`可以讓裡面的View置中
 - `.sheet(isPresented: $addingNewBook){ NewBookView()}`可以寫成`.sheet(isPresented: $addingNewBook, content: NewBookView.init)`
@@ -476,6 +496,30 @@ window.rootViewController?.present(alertController, animated: true)
 ```
 
 ## 導航
+- NavigationStack可使用兩種方式做Push View
+```swift
+//Pushed View包在`NavigationLink`裡
+NavigationStack {
+  List(store.objects) { object in
+      NavigationLink(object.title) {
+          MyView(object: object)
+      }
+  }
+}
+
+//監聽`NavigationLink`的值
+NavigationStack {
+  List(store.objects) { object in
+      NavigationLink(value: object) {
+        Text(object.title)
+      }
+  }
+  .navigationTitle("The Met")
+  .navigationDestination(for: Object.self) { object in
+    ObjectView(object: object)
+  }
+}
+```
 
 - NavigationLink可單獨使用在ChildView中，如果母層有NavigationStack才會生效
 - NavigationLink(destination:)在MVVM架構底下，不應該直接指定destination是哪個View，要透過一個中介的方式，讓ViewModel回傳目標View:
@@ -578,7 +622,8 @@ window.rootViewController?.present(alertController, animated: true)
   }
 ```
 
-- 除了使用 `GeometryReader`設定子View的大小，也可以使用 `.containerRelativeFrame(_:alignment:_:)`(iOS 17+)
+- `GeometryReader`:讀取 Parent View 的大小，用來設定 Child View 的大小，但會改變 Child View 對齊方式為`Left-Top`，另外有`.onGeometryChange` 監聽 view 的大小變化
+- `.containerRelativeFrame(_:alignment:_:)`(iOS 17+) 也可基於 Parent View改變自身大小
 ```swift
 	//GeometryReader
 	GeometryReader { proxy in
