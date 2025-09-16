@@ -242,6 +242,16 @@ SomeAPI.someFunc() { value, error in
 expiresAt.compare(Date()) == .orderedDescending
 ```
 
+#### 比較方法 - 複合條件
+```swift
+// 由左到右依序比對 modifiedDate、text、最後才是 id。
+extension Note: Comparable {
+  static func < (lhs: Self, rhs: Self) -> Bool {
+    (lhs.modifiedDate, lhs.text, lhs.id) < (rhs.modifiedDate, rhs.text, rhs.id)
+  }
+}
+```
+
 #### 過濾與轉換
 ```swift
 let list: [Any] = ["A", "B", 1, 2, true]
