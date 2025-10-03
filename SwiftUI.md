@@ -373,7 +373,7 @@ struct CardsListView: View {
 - Ctrl + Option + Click點擊canvas畫面，出現元件設定選項
 - 假若Object是一個@EnvironmentObject, 裡面有一個Compute Property: param, 若想要把這個param放到Binding<T>裡，可以用Binding的靜態方法.constant包起來，它可以由一個無法修改值初始化，ex:.constant(challengesViewModel.numberOfAnswered)
 - [Environment值列表](https://developer.apple.com/documentation/swiftui/environmentvalues) - 可自訂environment屬性
-- `@ViewBuilder`: 當view的body可能會產出多個view時使用:
+- `@ViewBuilder`: 當view的body可能會產出多個view時使用、將多個 View 包成一個 View:
 ```swift
   @ViewBuilder
   var body: some View {
