@@ -622,7 +622,7 @@ NavigationStack {
   }
 ```
 
-- `GeometryReader`:讀取 Parent View 的大小，用來設定 Child View 的大小，但會改變 Child View 對齊方式為`Left-Top`，另外有`.onGeometryChange` 監聽 view 的大小變化
+- `GeometryReader`:讀取 Parent View 的大小，用來設定 Child View 的大小，但會改變 Child View 對齊方式為`Left-Top`，另外有`.onGeometryChange` 監聽 view 的大小變化，也可使用`.visualEffect`
 - `.containerRelativeFrame(_:alignment:_:)`(iOS 17+) 也可基於 Parent View改變自身大小
 ```swift
 	//GeometryReader
